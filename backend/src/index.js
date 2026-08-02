@@ -34,6 +34,13 @@ function normalizePort(val, defaultPort = 5000) {
 
 const PORT = normalizePort(process.env.PORT, 5000)
 
-app.listen(PORT, () => {
+/**
+ * Callback function logged when server successfully starts listening.
+ *
+ * @returns {void}
+ */
+function handleServerListening() {
     console.log(`Server is running on port ${PORT}`)
-})
+}
+
+app.listen(PORT, handleServerListening)
