@@ -23,6 +23,13 @@ app.use(cors({
 }))
 
 
+/**
+ * Root health check route for NotesApp API.
+ *
+ * @param {import("express").Request} req - The Express request object.
+ * @param {import("express").Response} res - The Express response object.
+ * @returns {void}
+ */
 app.get("/" , (req , res) => {
     res.send("Welcom to NotesApp");
 })
