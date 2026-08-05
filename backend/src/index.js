@@ -16,9 +16,9 @@ connectDB()
       logger.info(`Server is running on port ${port}`);
     });
     server.on("error", (err) => {
-      logger.error("Server encountered an error:", err);
+      logger.error(err, "Server encountered an error");
     });
   })
   .catch((err) => {
-    logger.error("MongoDb connection error", err);
+    logger.error(err, "MongoDb connection error");
   });
