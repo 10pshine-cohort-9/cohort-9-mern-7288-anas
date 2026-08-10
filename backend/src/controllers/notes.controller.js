@@ -201,6 +201,7 @@ const deleteNote = asyncHandler(async (req, res) => {
  * @route   POST /api/v1/notes/upload-image
  * @access  Private (Protected with verifyJWT, upload.single("image"))
  */
+
 const uploadNoteImage = asyncHandler(async (req, res) => {
   const localFilePath = req.file?.path;
 
