@@ -31,7 +31,9 @@ app.use(
 // routes
 
 import userRoute from "./routes/user.routes.js";
+import noteRoute from "./routes/note.routes.js";
 
 app.use("/api/v1/users", userRoute);
+app.use("/api/v1/notes", noteRoute);
 
 export default app;
