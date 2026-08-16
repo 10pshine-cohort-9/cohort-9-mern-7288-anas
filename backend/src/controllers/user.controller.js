@@ -49,7 +49,10 @@ const registerUser = asyncHandler(async (req, res) => {
     );
 
     if (!createdUser) {
-      throw new ApiError(500, "Something went wrong while registering the user");
+      throw new ApiError(
+        500,
+        "Something went wrong while registering the user",
+      );
     }
 
     return res
@@ -157,6 +160,14 @@ const logoutUser = asyncHandler(async (req, res) => {
   }
 });
 
+const getCurrentUser = asyncHandler(async (req, res) => {
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, req.user, "Current user fetched successfully"),
+    );
+});
+
 const refreshAccessToken = asyncHandler(async (req, res) => {
   const incomingRefreshToken =
     req.cookies?.refreshToken || req.body?.refreshToken;
@@ -193,13 +204,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       .status(200)
       .cookie("accessToken", accessToken, options)
       .cookie("refreshToken", newRefreshToken, options)
-      .json(
-        new ApiResponse(
-          200,
-          {},
-          "Access token refreshed successfully",
-        ),
-      );
+      .json(new ApiResponse(200, {}, "Access token refreshed successfully"));
   } catch (error) {
     throw error instanceof ApiError
       ? error
@@ -207,4 +212,10 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken };
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  getCurrentUser,
+};
