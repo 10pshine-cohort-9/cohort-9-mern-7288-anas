@@ -1,14 +1,13 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { axiosInstance } from "../api/axios";
 
-// Fetch all notes for the logged-in user
+
 export const fetchNotes = createAsyncThunk(
   "notes/fetchNotes",
   async (params = {}, thunkAPI) => {
     try {
       const response = await axiosInstance.get("/notes", { params });
       const data = response.data?.data;
-      // Handles both direct array or paginated response { notes: [...] }
       if (Array.isArray(data)) {
         return data;
       }
@@ -21,7 +20,6 @@ export const fetchNotes = createAsyncThunk(
   }
 );
 
-// Create a new note (default payload: { title: "Untitled", content: "" })
 export const createNote = createAsyncThunk(
   "notes/createNote",
   async (payload = { title: "Untitled", content: "" }, thunkAPI) => {
@@ -40,7 +38,7 @@ export const createNote = createAsyncThunk(
   }
 );
 
-// Delete a note by its ID
+
 export const deleteNote = createAsyncThunk(
   "notes/deleteNote",
   async (noteId, thunkAPI) => {
@@ -55,7 +53,7 @@ export const deleteNote = createAsyncThunk(
   }
 );
 
-// Fetch a single note by ID
+
 export const fetchNoteById = createAsyncThunk(
   "notes/fetchNoteById",
   async (noteId, thunkAPI) => {
@@ -94,7 +92,7 @@ const notesSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Fetch Notes
+     
       .addCase(fetchNotes.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -109,7 +107,7 @@ const notesSlice = createSlice({
         state.error = action.payload;
       })
 
-      // Create Note
+    
       .addCase(createNote.pending, (state) => {
         state.isCreating = true;
         state.error = null;
@@ -125,7 +123,7 @@ const notesSlice = createSlice({
         state.error = action.payload;
       })
 
-      // Delete Note
+     
       .addCase(deleteNote.fulfilled, (state, action) => {
         state.notes = state.notes.filter((note) => note._id !== action.payload);
         if (state.activeNote?._id === action.payload) {
@@ -137,7 +135,6 @@ const notesSlice = createSlice({
         state.error = action.payload;
       })
 
-      // Fetch Note by ID
       .addCase(fetchNoteById.fulfilled, (state, action) => {
         state.activeNote = action.payload;
       });
