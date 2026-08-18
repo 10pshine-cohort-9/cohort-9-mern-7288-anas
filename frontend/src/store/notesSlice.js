@@ -68,11 +68,29 @@ export const fetchNoteById = createAsyncThunk(
   }
 );
 
+export const updateNote = createAsyncThunk(
+  "notes/updateNote",
+  async ({ noteId, title, content }, thunkAPI) => {
+    try {
+      const response = await axiosInstance.patch(`/notes/${noteId}`, {
+        title,
+        content,
+      });
+      return response.data?.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Failed to update note"
+      );
+    }
+  }
+);
+
 const initialState = {
   notes: [],
   activeNote: null,
   isLoading: false,
   isCreating: false,
+  isSaving: false,
   error: null,
 };
 
@@ -135,8 +153,53 @@ const notesSlice = createSlice({
         state.error = action.payload;
       })
 
+      // Fetch Note By ID
+      .addCase(fetchNoteById.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
       .addCase(fetchNoteById.fulfilled, (state, action) => {
+        state.isLoading = false;
         state.activeNote = action.payload;
+        if (action.payload) {
+          const exists = state.notes.some((note) => note._id === action.payload._id);
+          if (!exists) {
+            state.notes.push(action.payload);
+          } else {
+            const index = state.notes.findIndex((n) => n._id === action.payload._id);
+            state.notes[index] = action.payload;
+          }
+        }
+        state.error = null;
+      })
+      .addCase(fetchNoteById.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+
+      // Update Note
+      .addCase(updateNote.pending, (state) => {
+        state.isSaving = true;
+        state.error = null;
+      })
+      .addCase(updateNote.fulfilled, (state, action) => {
+        state.isSaving = false;
+        state.activeNote = action.payload;
+        if (action.payload?._id) {
+          const index = state.notes.findIndex(
+            (note) => note._id === action.payload._id
+          );
+          if (index !== -1) {
+            state.notes[index] = action.payload;
+          } else {
+            state.notes.unshift(action.payload);
+          }
+        }
+        state.error = null;
+      })
+      .addCase(updateNote.rejected, (state, action) => {
+        state.isSaving = false;
+        state.error = action.payload;
       });
   },
 });

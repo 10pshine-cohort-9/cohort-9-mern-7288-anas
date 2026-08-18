@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import DashboardLayout from './layouts/DashboardLayout';
 import DashboardIndex from './pages/DashboardIndex';
+import NoteEditor from './components/NoteEditor';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -37,7 +38,7 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<DashboardIndex />} />
-            <Route path=":noteId" element={<DashboardIndex />} />
+            <Route path=":noteId" element={<NoteEditor />} />
           </Route>
         </Route>
       </Routes>

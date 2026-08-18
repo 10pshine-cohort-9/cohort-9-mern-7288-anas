@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { NavLink, Outlet, useNavigate, useParams, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchNotes, createNote, deleteNote } from '../store/notesSlice.js';
 import { logout } from '../store/authSlice.js';
@@ -9,7 +9,6 @@ const DashboardLayout = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { noteId } = useParams();
-  const location = useLocation();
 
   const { userData } = useSelector((state) => state.auth);
   const { notes, isLoading, isCreating } = useSelector((state) => state.notes);
