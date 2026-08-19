@@ -195,6 +195,7 @@ const NoteEditorForm = ({ note }) => {
         // If superseded by a newer save, do not display error for this stale dispatch
         if (revisionRef.current === currentRevision) {
           console.error('Failed to update note:', err);
+          revisionRef.current = Number(note?.version ?? note?.revision ?? 1);
           setSaveStatus('error');
         }
       }
