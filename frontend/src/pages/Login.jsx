@@ -1,20 +1,19 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { login } from '../store/authSlice.js';
-import axiosInstance from '../utils/axiosInstance.js';
+import { useDispatch, useSelector } from 'react-redux';
+import { login, clearError } from '../store/authSlice.js';
 import logger from '../utils/logger.js';
 
 const Login = () => {
-  const [serverError, setServerError] = useState('');
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { status, userData, isLoading, error } = useSelector((state) => state.auth);
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm({
     defaultValues: {
       email: '',
@@ -22,81 +21,97 @@ const Login = () => {
     },
   });
 
+  // Automatically redirect to /dashboard if logged in
+  useEffect(() => {
+    if (status || userData) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [status, userData, navigate]);
+
+  // Clear any existing auth errors when the component mounts or unmounts (route switch)
+  useEffect(() => {
+    dispatch(clearError());
+    return () => {
+      dispatch(clearError());
+    };
+  }, [dispatch]);
+
+  // Clear error when the user starts typing in any field
+  const handleInputChange = () => {
+    if (error) {
+      dispatch(clearError());
+    }
+  };
+
   const onSubmit = async (data) => {
-    setServerError('');
     try {
-      const payload = {
-        email: data.email,
-        username: data.email,
-        password: data.password,
-      };
+      await dispatch(
+        login({
+          email: data.email.trim(),
+          password: data.password,
+        })
+      ).unwrap();
 
-      const response = await axiosInstance.post('/users/login', payload);
-      logger.info({ res: response.data }, 'User logged in successfully');
-
-      const userData = response.data?.data?.user || response.data?.data || response.data;
-      dispatch(login({ userData }));
-
-      navigate('/dashboard');
-    } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || error.message || 'Login failed. Please check your credentials.';
-      setServerError(errorMessage);
-      logger.error({ err: error }, 'Login error');
+      logger.info('User logged in successfully');
+      navigate('/dashboard', { replace: true });
+    } catch (err) {
+      logger.error({ err }, 'Login error');
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 py-12">
-      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-100 dark:border-gray-700">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950 px-4 py-12">
+      <div className="max-w-md w-full bg-white dark:bg-zinc-900 rounded-2xl shadow-xl p-8 border border-gray-100 dark:border-zinc-800">
         <div className="text-center mb-8">
+          <Link to="/" className="inline-flex items-center justify-center space-x-2 mb-4 group">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white font-bold text-xl shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
+              ⚡
+            </div>
+          </Link>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome Back</h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Sign in to access your dashboard
+          <p className="mt-2 text-sm text-gray-600 dark:text-zinc-400">
+            Sign in to access your notes workspace
           </p>
         </div>
 
-        {serverError && (
-          <div className="mb-6 p-4 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300">
-            {serverError}
+        {/* Dynamic backend error display from Redux state */}
+        {error && (
+          <div className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/80 text-sm text-red-700 dark:text-red-300 flex items-start space-x-2.5">
+            <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
           <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              Email Address
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1.5">
+              Email Address or Username
             </label>
             <input
               id="email"
-              type="email"
+              type="text"
               placeholder="you@example.com"
               {...register('email', {
-                required: 'Email is required',
-                pattern: {
-                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: 'Please enter a valid email address',
-                },
+                required: 'Email address or username is required',
+                onChange: handleInputChange,
               })}
-              className={`w-full px-4 py-2.5 rounded-lg border text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition duration-150 focus:outline-none focus:ring-2 ${
+              className={`w-full px-4 py-2.5 rounded-lg border text-gray-900 dark:text-white bg-white dark:bg-zinc-800 transition duration-150 focus:outline-none focus:ring-2 ${
                 errors.email
                   ? 'border-red-500 focus:ring-red-400'
-                  : 'border-gray-300 dark:border-gray-600 focus:ring-indigo-500 focus:border-transparent'
+                  : 'border-gray-300 dark:border-zinc-700 focus:ring-indigo-500 focus:border-transparent'
               }`}
             />
             {errors.email && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email.message}</p>
+              <p className="mt-1.5 text-xs text-red-600 dark:text-red-400 font-medium">
+                {errors.email.message}
+              </p>
             )}
           </div>
 
           <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1.5">
               Password
             </label>
             <input
@@ -105,15 +120,16 @@ const Login = () => {
               placeholder="••••••••"
               {...register('password', {
                 required: 'Password is required',
+                onChange: handleInputChange,
               })}
-              className={`w-full px-4 py-2.5 rounded-lg border text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition duration-150 focus:outline-none focus:ring-2 ${
+              className={`w-full px-4 py-2.5 rounded-lg border text-gray-900 dark:text-white bg-white dark:bg-zinc-800 transition duration-150 focus:outline-none focus:ring-2 ${
                 errors.password
                   ? 'border-red-500 focus:ring-red-400'
-                  : 'border-gray-300 dark:border-gray-600 focus:ring-indigo-500 focus:border-transparent'
+                  : 'border-gray-300 dark:border-zinc-700 focus:ring-indigo-500 focus:border-transparent'
               }`}
             />
             {errors.password && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+              <p className="mt-1.5 text-xs text-red-600 dark:text-red-400 font-medium">
                 {errors.password.message}
               </p>
             )}
@@ -121,29 +137,14 @@ const Login = () => {
 
           <button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full flex justify-center items-center py-3 px-4 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150 shadow-md"
+            disabled={isLoading}
+            className="w-full flex justify-center items-center py-3 px-4 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150 shadow-md shadow-indigo-600/20 cursor-pointer"
           >
-            {isSubmitting ? (
+            {isLoading ? (
               <span className="inline-flex items-center">
-                <svg
-                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
                 Signing In...
               </span>
@@ -153,13 +154,10 @@ const Login = () => {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
+        <p className="mt-6 text-center text-sm text-gray-600 dark:text-zinc-400">
           Don&apos;t have an account?{' '}
-          <Link
-            to="/register"
-            className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 hover:underline"
-          >
-            Sign Up
+          <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 hover:underline">
+            Sign Up Free
           </Link>
         </p>
       </div>
