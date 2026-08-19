@@ -97,8 +97,9 @@ const NoteEditorForm = ({ note }) => {
   const contentRef = useRef(content);
   const revisionRef = useRef(Number(note?.version ?? note?.revision ?? 1));
 
-  // Ref tracking current image URLs present in editor to detect removals without extra re-renders
+  // Ref tracking current image URLs present in editor
   const currentImagesRef = useRef(getImageUrlsMap(note?.content || ''));
+  const savedImagesRef = useRef(getImageUrlsMap(note?.content || ''));
 
   useEffect(() => {
     titleRef.current = title;
@@ -116,6 +117,7 @@ const NoteEditorForm = ({ note }) => {
   useEffect(() => {
     if (note?.content) {
       currentImagesRef.current = getImageUrlsMap(note.content);
+      savedImagesRef.current = getImageUrlsMap(note.content);
     }
   }, [note]);
 
@@ -168,6 +170,22 @@ const NoteEditorForm = ({ note }) => {
           })
         ).unwrap();
 
+        // Compare the persisted snapshot against the content just confirmed by the server
+        const savedMap = getImageUrlsMap(contentToSave);
+        for (const [oldUrl] of savedImagesRef.current) {
+          if (!savedMap.has(oldUrl)) {
+            const publicId = extractCloudinaryPublicId(oldUrl);
+            if (publicId) {
+              dispatch(deleteNoteImage({ publicId }))
+                .unwrap()
+                .catch((err) =>
+                  console.error(`Failed to delete orphaned image (${publicId}):`, err)
+                );
+            }
+          }
+        }
+        savedImagesRef.current = savedMap;
+
         // Only mark saved if this dispatch was not superseded by a newer one
         if (revisionRef.current === currentRevision) {
           setSaveStatus('saved');
@@ -192,62 +210,53 @@ const NoteEditorForm = ({ note }) => {
       }
       debounceTimerRef.current = setTimeout(() => {
         performSave(newTitle, newContent);
-      }, 1000);
+      }, 5000);
     },
     [performSave]
   );
 
   const handleTitleChange = (e) => {
     const newTitle = e.target.value;
+    titleRef.current = newTitle;
     setTitle(newTitle);
-    triggerDebouncedSave(newTitle, content);
+    triggerDebouncedSave(newTitle, contentRef.current);
   };
 
   /**
-   * Handle content change with image deletion detection
+   * Handle content change
    */
   const handleContentChange = useCallback(
     (value) => {
-      // Detect deleted images by comparing previous and new images map
       const newImagesMap = getImageUrlsMap(value);
-      const prevImagesMap = currentImagesRef.current;
-
-      const removedImageUrls = [];
-      for (const [oldUrl] of prevImagesMap) {
-        if (!newImagesMap.has(oldUrl)) {
-          removedImageUrls.push(oldUrl);
-        }
-      }
-
-      // Update current images ref
       currentImagesRef.current = newImagesMap;
-
-      // Automatically dispatch cleanup for deleted Cloudinary images
-      if (removedImageUrls.length > 0) {
-        removedImageUrls.forEach((imgUrl) => {
-          const publicId = extractCloudinaryPublicId(imgUrl);
-          if (publicId) {
-            dispatch(deleteNoteImage({ publicId }))
-              .unwrap()
-              .catch((err) => {
-                console.error(`Failed to delete orphaned Cloudinary image (${publicId}):`, err);
-              });
-          }
-        });
-      }
-
+      contentRef.current = value;
       setContent(value);
       triggerDebouncedSave(titleRef.current, value);
     },
-    [dispatch, triggerDebouncedSave]
+    [triggerDebouncedSave]
   );
 
-  const handleManualSave = () => {
+  const handleManualSave = useCallback(() => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
-    performSave(title, content);
-  };
+    performSave(titleRef.current, contentRef.current);
+  }, [performSave]);
+
+  // Global keyboard shortcut: Ctrl+S / Cmd+S for manual save
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        handleManualSave();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleManualSave]);
 
   /**
    * Custom Image Upload Handler for React Quill
@@ -363,8 +372,8 @@ const NoteEditorForm = ({ note }) => {
           )}
         </div>
 
-        {/* Single Consolidated Status Indicator */}
-        <div className="flex items-center space-x-3">
+        {/* Single Consolidated Status Indicator & Manual Save Actions */}
+        <div className="flex items-center space-x-2">
           {isUploadingImage ? (
             <div className="flex items-center space-x-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-medium">
               <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -398,8 +407,10 @@ const NoteEditorForm = ({ note }) => {
             </div>
           ) : saveStatus === 'unsaved' ? (
             <button
+              type="button"
               onClick={handleManualSave}
-              className="flex items-center space-x-1 px-3 py-1 text-xs font-semibold rounded-md bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-all cursor-pointer"
+              title="Save changes now (Ctrl+S)"
+              className="flex items-center space-x-1.5 px-3 py-1 text-xs font-semibold rounded-md bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-all cursor-pointer"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -410,11 +421,16 @@ const NoteEditorForm = ({ note }) => {
                 />
               </svg>
               <span>Save</span>
+              <kbd className="hidden sm:inline-block text-[10px] font-mono bg-indigo-700/80 px-1 py-0.2 rounded">
+                Ctrl+S
+              </kbd>
             </button>
           ) : saveStatus === 'error' ? (
             <button
+              type="button"
               onClick={handleManualSave}
-              className="flex items-center space-x-1 px-2.5 py-1 text-xs font-medium rounded-md bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 hover:bg-red-200 transition-colors cursor-pointer"
+              title="Retry saving note (Ctrl+S)"
+              className="flex items-center space-x-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 hover:bg-red-200 transition-colors cursor-pointer"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -425,18 +441,42 @@ const NoteEditorForm = ({ note }) => {
                 />
               </svg>
               <span>Retry Save</span>
+              <kbd className="hidden sm:inline-block text-[10px] font-mono bg-red-200 dark:bg-red-800/60 px-1 py-0.2 rounded">
+                Ctrl+S
+              </kbd>
             </button>
           ) : (
-            <div className="flex items-center space-x-1 text-xs text-zinc-400 dark:text-zinc-500">
-              <svg
-                className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1 text-xs text-zinc-400 dark:text-zinc-500">
+                <svg
+                  className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Saved</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleManualSave}
+                title="Save now (Ctrl+S)"
+                className="flex items-center space-x-1 px-2 py-0.5 text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors cursor-pointer"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <span>Saved</span>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+                  />
+                </svg>
+                <span>Save</span>
+                <kbd className="hidden sm:inline-block text-[9px] font-mono text-zinc-400 dark:text-zinc-500">
+                  Ctrl+S
+                </kbd>
+              </button>
             </div>
           )}
         </div>
