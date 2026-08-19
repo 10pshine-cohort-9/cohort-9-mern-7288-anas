@@ -175,15 +175,15 @@ const DashboardLayout = () => {
             {/* Scrollable Notes List */}
             <ul className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5 scrollbar-thin list-none m-0 p-0">
               {isLoading && notes.length === 0 ? (
-                <div className="space-y-2 p-2">
+                <li className="list-none space-y-2 p-2">
                   <div className="h-7 bg-zinc-200/70 dark:bg-zinc-800 rounded animate-pulse" />
                   <div className="h-7 bg-zinc-200/70 dark:bg-zinc-800 rounded animate-pulse" />
                   <div className="h-7 bg-zinc-200/70 dark:bg-zinc-800 rounded animate-pulse" />
-                </div>
+                </li>
               ) : filteredNotes.length === 0 ? (
-                <div className="px-3 py-6 text-center text-xs text-zinc-400 dark:text-zinc-500">
+                <li className="list-none px-3 py-6 text-center text-xs text-zinc-400 dark:text-zinc-500">
                   {searchQuery ? 'No notes match your search.' : 'No notes yet. Click "+ New Note" to start!'}
-                </div>
+                </li>
               ) : (
                 filteredNotes.map((note) => {
                   const isActive = noteId === note._id;
