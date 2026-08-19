@@ -5,7 +5,8 @@ import { getCurrentUser } from "./store/authSlice.js";
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
+import DashboardLayout from './layouts/DashboardLayout';
+import DashboardIndex from './pages/DashboardIndex';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -19,8 +20,11 @@ function App() {
   // Prevent rendering the routes until the backend verifies the cookie
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <h2>Loading securely...</h2> {/* Replace with your actual spinner component */}
+      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-zinc-950">
+        <div className="flex flex-col items-center space-y-3">
+          <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Loading workspace...</p>
+        </div>
       </div>
     );
   }
@@ -31,7 +35,10 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route element={<ProtectedRoute />}>
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<DashboardIndex />} />
+            <Route path=":noteId" element={<DashboardIndex />} />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>
