@@ -48,6 +48,7 @@ const NoteEditorForm = ({ note }) => {
   const debounceTimerRef = useRef(null);
   const titleRef = useRef(title);
   const contentRef = useRef(content);
+  const revisionRef = useRef(Number(note?.version ?? note?.revision ?? 1));
 
   useEffect(() => {
     titleRef.current = title;
@@ -56,6 +57,11 @@ const NoteEditorForm = ({ note }) => {
   useEffect(() => {
     contentRef.current = content;
   }, [content]);
+
+  useEffect(() => {
+    const noteRev = Number(note?.version ?? note?.revision ?? 1);
+    revisionRef.current = Math.max(revisionRef.current, noteRev);
+  }, [note?.version, note?.revision]);
 
   // Cleanup debounce timer on unmount
   useEffect(() => {
@@ -76,6 +82,9 @@ const NoteEditorForm = ({ note }) => {
       const contentToSave =
         overrideContent !== undefined ? overrideContent : contentRef.current ?? '';
 
+      revisionRef.current += 1;
+      const currentRevision = revisionRef.current;
+
       setSaveStatus('saving');
       try {
         await dispatch(
@@ -83,13 +92,22 @@ const NoteEditorForm = ({ note }) => {
             noteId: note._id,
             title: titleToSave,
             content: contentToSave,
+            revision: currentRevision,
+            version: currentRevision,
           })
         ).unwrap();
-        setSaveStatus('saved');
-        setLastSavedAt(new Date());
+
+        // Only mark saved if this dispatch was not superseded by a newer one
+        if (revisionRef.current === currentRevision) {
+          setSaveStatus('saved');
+          setLastSavedAt(new Date());
+        }
       } catch (err) {
-        console.error('Failed to update note:', err);
-        setSaveStatus('error');
+        // If superseded by a newer save, do not display error for this stale dispatch
+        if (revisionRef.current === currentRevision) {
+          console.error('Failed to update note:', err);
+          setSaveStatus('error');
+        }
       }
     },
     [dispatch, note]
