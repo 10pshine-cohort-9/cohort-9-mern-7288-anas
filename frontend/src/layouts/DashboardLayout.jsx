@@ -39,6 +39,13 @@ const DashboardLayout = () => {
     e.stopPropagation();
     e.preventDefault();
 
+    const isConfirmed = window.confirm(
+      'Are you sure you want to delete this note? This action cannot be undone.'
+    );
+    if (!isConfirmed) {
+      return;
+    }
+
     try {
       await dispatch(deleteNote(idToDelete)).unwrap();
       if (noteId === idToDelete) {
@@ -168,7 +175,7 @@ const DashboardLayout = () => {
             <div className="px-3 pt-2 pb-1 flex items-center justify-between text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
               <span>Notes</span>
               <span className="bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-1.5 py-0.2 rounded text-[10px]">
-                {notes.length}
+                {filteredNotes.length}
               </span>
             </div>
 
