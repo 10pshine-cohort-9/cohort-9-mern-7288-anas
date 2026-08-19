@@ -196,10 +196,14 @@ const updateNote = asyncHandler(async (req, res) => {
     
     if (incomingRevision !== undefined && incomingRevision !== null) {
       const incomingRevNum = Number(incomingRevision);
-      if (isNaN(incomingRevNum) || incomingRevNum <= currentVersion) {
+      if (
+        isNaN(incomingRevNum) ||
+        !Number.isInteger(incomingRevNum) ||
+        incomingRevNum !== currentVersion + 1
+      ) {
         throw new ApiError(
           409,
-          `Stale write rejected: incoming revision (${incomingRevision}) is older than or equal to current revision (${currentVersion})`,
+          "Stale write rejected: revision must advance by one",
         );
       }
     }
@@ -221,7 +225,7 @@ const updateNote = asyncHandler(async (req, res) => {
       updateFields.content = content;
     }
 
-    
+    // Atomic update query
     const query = {
       _id: noteId,
       owner: req.user?._id,
@@ -229,7 +233,7 @@ const updateNote = asyncHandler(async (req, res) => {
 
     if (incomingRevision !== undefined && incomingRevision !== null) {
       query.$or = [
-        { version: { $lt: targetVersion } },
+        { version: targetVersion - 1 },
         { version: { $exists: false } },
       ];
     }

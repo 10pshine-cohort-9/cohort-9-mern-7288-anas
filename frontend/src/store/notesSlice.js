@@ -71,8 +71,8 @@ export const fetchNoteById = createAsyncThunk(
 export const updateNote = createAsyncThunk(
   "notes/updateNote",
   async ({ noteId, title, content, revision, version }, thunkAPI) => {
+    let revToSend = revision ?? version;
     try {
-      let revToSend = revision ?? version;
       if (revToSend === undefined || revToSend === null) {
         const state = thunkAPI.getState()?.notes;
         const noteInState =
@@ -100,7 +100,7 @@ export const updateNote = createAsyncThunk(
         status: error.response?.status,
         message: error.response?.data?.message || "Failed to update note",
         noteId,
-        revision: revision ?? version,
+        revision: revToSend ?? null,
       });
     }
   }
@@ -290,7 +290,7 @@ const notesSlice = createSlice({
         }
 
         // Apply update to activeNote
-        if (!state.activeNote || state.activeNote._id === noteId) {
+        if (state.activeNote?._id === noteId) {
           state.activeNote = action.payload;
         }
 
@@ -311,7 +311,10 @@ const notesSlice = createSlice({
         state.isSaving = false;
         const noteId = action.meta?.arg?.noteId;
         const rejectedRev = Number(
-          action.meta?.arg?.revision ?? action.meta?.arg?.version ?? 0
+          action.payload?.revision ??
+            action.meta?.arg?.revision ??
+            action.meta?.arg?.version ??
+            0
         );
         const latestDispatched = noteId
           ? state.latestDispatchedRevision[noteId] || 0
@@ -320,6 +323,17 @@ const notesSlice = createSlice({
         // Ignore rejection errors if this action was older than the latest dispatched revision
         if (noteId && rejectedRev < latestDispatched) {
           return;
+        }
+
+        // Roll back latestDispatchedRevision to the last known confirmed revision in state
+        if (noteId) {
+          const noteInState =
+            state.notes.find((n) => n._id === noteId) ||
+            (state.activeNote?._id === noteId ? state.activeNote : null);
+          const confirmedRev = Number(
+            noteInState?.version ?? noteInState?.revision ?? 0
+          );
+          state.latestDispatchedRevision[noteId] = confirmedRev;
         }
 
         const errorMsg =
