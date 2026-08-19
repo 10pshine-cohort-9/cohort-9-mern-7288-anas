@@ -287,6 +287,31 @@ const deleteNote = asyncHandler(async (req, res) => {
       throw new ApiError(403, "You are not authorized to delete this note");
     }
 
+    // 1. Find all associated image records for this note
+    const associatedImages = await NoteImage.find({ note: noteId });
+
+    // 2. Delete each associated image from Cloudinary (graceful handling)
+    if (associatedImages.length > 0) {
+      await Promise.allSettled(
+        associatedImages.map(async (image) => {
+          try {
+            if (image.publicId) {
+              await deleteFromCloudinary(image.publicId);
+            }
+          } catch (cloudinaryError) {
+            console.error(
+              `Failed to delete image ${image.publicId} from Cloudinary:`,
+              cloudinaryError,
+            );
+          }
+        }),
+      );
+
+      // 3. Delete associated NoteImage records from MongoDB
+      await NoteImage.deleteMany({ note: noteId });
+    }
+
+    // 4. Delete the note document
     await Note.findByIdAndDelete(noteId);
 
     return res
