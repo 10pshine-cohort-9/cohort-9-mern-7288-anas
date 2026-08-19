@@ -516,6 +516,7 @@ const NoteEditorForm = ({ note }) => {
               onChange={handleTitleChange}
               placeholder="Untitled"
               className="w-full bg-transparent text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 border-none outline-none focus:outline-none focus:ring-0 p-0 transition-colors"
+              aria-label="Note title"
             />
           </div>
 
