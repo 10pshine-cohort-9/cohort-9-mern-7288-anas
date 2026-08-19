@@ -211,7 +211,7 @@ const NoteEditorForm = ({ note }) => {
       }
       debounceTimerRef.current = setTimeout(() => {
         performSave(newTitle, newContent);
-      }, 5000);
+      }, 10000);
     },
     [performSave]
   );
