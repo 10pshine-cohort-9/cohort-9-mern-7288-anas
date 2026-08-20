@@ -1,22 +1,37 @@
 import mongoose , {Schema}from 'mongoose'
 
-const noteSchema = new Schema({
+const noteSchema = new Schema(
+  {
     title: {
-        type: String,
-        required: [true , "Title is required"],
-        trim: true,
-        index: true
+      type: String,
+      required: [true, "Title is required"],
+      trim: true,
+      index: true,
     },
     content: {
-        type: String,
-        default: ""
+      type: String,
+      default: "",
     },
-    owner : {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
-        index: true
-    }
-} , {timestamps: true})
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    version: {
+      type: Number,
+      default: 1,
+    },
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
+);
 
-export const Note = mongoose.model("Note" , noteSchema)
+noteSchema.virtual("revision").get(function () {
+  return this.version;
+});
+
+export const Note = mongoose.model("Note", noteSchema);

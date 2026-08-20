@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { NavLink, Outlet, useNavigate, useParams, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchNotes, createNote, deleteNote } from '../store/notesSlice.js';
 import { logout } from '../store/authSlice.js';
@@ -9,7 +9,6 @@ const DashboardLayout = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { noteId } = useParams();
-  const location = useLocation();
 
   const { userData } = useSelector((state) => state.auth);
   const { notes, isLoading, isCreating } = useSelector((state) => state.notes);
@@ -174,31 +173,35 @@ const DashboardLayout = () => {
             </div>
 
             {/* Scrollable Notes List */}
-            <div className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5 scrollbar-thin">
+            <ul className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5 scrollbar-thin list-none m-0 p-0">
               {isLoading && notes.length === 0 ? (
-                <div className="space-y-2 p-2">
+                <li className="list-none space-y-2 p-2">
                   <div className="h-7 bg-zinc-200/70 dark:bg-zinc-800 rounded animate-pulse" />
                   <div className="h-7 bg-zinc-200/70 dark:bg-zinc-800 rounded animate-pulse" />
                   <div className="h-7 bg-zinc-200/70 dark:bg-zinc-800 rounded animate-pulse" />
-                </div>
+                </li>
               ) : filteredNotes.length === 0 ? (
-                <div className="px-3 py-6 text-center text-xs text-zinc-400 dark:text-zinc-500">
+                <li className="list-none px-3 py-6 text-center text-xs text-zinc-400 dark:text-zinc-500">
                   {searchQuery ? 'No notes match your search.' : 'No notes yet. Click "+ New Note" to start!'}
-                </div>
+                </li>
               ) : (
                 filteredNotes.map((note) => {
                   const isActive = noteId === note._id;
+                  const noteTitle =
+                    note.title && note.title.trim() !== '' ? note.title : 'Untitled';
                   return (
-                    <NavLink
+                    <li
                       key={note._id}
-                      to={`/dashboard/${note._id}`}
-                      className={`group flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs transition-all ${
+                      className={`group relative flex items-center justify-between rounded-md text-xs transition-all ${
                         isActive
                           ? 'bg-zinc-200/90 dark:bg-zinc-800 font-medium text-zinc-900 dark:text-zinc-100 shadow-2xs'
                           : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-200'
                       }`}
                     >
-                      <div className="flex items-center space-x-2 min-w-0 flex-1 pr-2">
+                      <NavLink
+                        to={`/dashboard/${note._id}`}
+                        className="flex items-center space-x-2 min-w-0 flex-1 px-2.5 py-1.5 pr-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 rounded-l-md"
+                      >
                         <svg
                           className={`w-3.5 h-3.5 shrink-0 ${
                             isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-400'
@@ -206,6 +209,7 @@ const DashboardLayout = () => {
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
+                          aria-hidden="true"
                         >
                           <path
                             strokeLinecap="round"
@@ -214,18 +218,18 @@ const DashboardLayout = () => {
                             d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                           />
                         </svg>
-                        <span className="truncate">
-                          {note.title && note.title.trim() !== '' ? note.title : 'Untitled'}
-                        </span>
-                      </div>
+                        <span className="truncate">{noteTitle}</span>
+                      </NavLink>
 
-                      {/* Hover Action: Delete Note */}
+                      {/* Sibling Delete Action Button */}
                       <button
+                        type="button"
                         onClick={(e) => handleDeleteNote(e, note._id)}
-                        title="Delete note"
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/40 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-all"
+                        aria-label={`Delete note: ${noteTitle}`}
+                        title={`Delete note: ${noteTitle}`}
+                        className="mr-1.5 p-1 rounded opacity-100 sm:opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-all cursor-pointer"
                       >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -234,11 +238,11 @@ const DashboardLayout = () => {
                           />
                         </svg>
                       </button>
-                    </NavLink>
+                    </li>
                   );
                 })
               )}
-            </div>
+            </ul>
 
             {/* Bottom User Profile and Logout */}
             <div className="p-3 border-t border-zinc-200/60 dark:border-zinc-800/60 bg-zinc-100/60 dark:bg-zinc-900/60">

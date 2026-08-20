@@ -27,6 +27,7 @@ const createNote = asyncHandler(async (req, res) => {
       title: title.trim(),
       content: content || "",
       owner: req.user?._id,
+      version: 1,
     });
 
     if (!note) {
@@ -161,46 +162,98 @@ const getNoteById = asyncHandler(async (req, res) => {
  */
 const updateNote = asyncHandler(async (req, res) => {
   const { noteId } = req.params;
-  const { title, content } = req.body;
+  const { title, content, revision, version } = req.body;
 
   if (!isValidObjectId(noteId)) {
     throw new ApiError(400, "Invalid note ID");
   }
 
-  if (!title && content === undefined) {
+  if (title === undefined && content === undefined) {
     throw new ApiError(
       400,
       "At least one field (title or content) is required to update",
     );
   }
 
-  try {
-    const note = await Note.findById(noteId);
+  if (title !== undefined && title.trim() === "") {
+    throw new ApiError(400, "Title cannot be empty");
+  }
 
-    if (!note) {
+  try {
+    const existingNote = await Note.findById(noteId);
+
+    if (!existingNote) {
       throw new ApiError(404, "Note not found");
     }
 
-    if (note.owner.toString() !== req.user?._id.toString()) {
+    if (existingNote.owner.toString() !== req.user?._id.toString()) {
       throw new ApiError(403, "You are not authorized to edit this note");
     }
 
-    if (title !== undefined) {
-      if (title.trim() === "") {
-        throw new ApiError(400, "Title cannot be empty");
+    const incomingRevision = revision ?? version;
+    const currentVersion = existingNote.version ?? 0;
+
+    
+    if (incomingRevision !== undefined && incomingRevision !== null) {
+      const incomingRevNum = Number(incomingRevision);
+      if (
+        isNaN(incomingRevNum) ||
+        !Number.isInteger(incomingRevNum) ||
+        incomingRevNum !== currentVersion + 1
+      ) {
+        throw new ApiError(
+          409,
+          "Stale write rejected: revision must advance by one",
+        );
       }
-      note.title = title.trim();
+    }
+
+    const targetVersion =
+      incomingRevision !== undefined && incomingRevision !== null
+        ? Number(incomingRevision)
+        : currentVersion + 1;
+
+    const updateFields = {
+      version: targetVersion,
+    };
+
+    if (title !== undefined) {
+      updateFields.title = title.trim();
     }
 
     if (content !== undefined) {
-      note.content = content;
+      updateFields.content = content;
     }
 
-    await note.save();
+    // Atomic update query
+    const query = {
+      _id: noteId,
+      owner: req.user?._id,
+    };
+
+    if (incomingRevision !== undefined && incomingRevision !== null) {
+      query.$or = [
+        { version: targetVersion - 1 },
+        { version: { $exists: false } },
+      ];
+    }
+
+    const updatedNote = await Note.findOneAndUpdate(
+      query,
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedNote) {
+      throw new ApiError(
+        409,
+        "Stale write rejected: note was updated concurrently with a newer revision",
+      );
+    }
 
     return res
       .status(200)
-      .json(new ApiResponse(200, note, "Note updated successfully"));
+      .json(new ApiResponse(200, updatedNote, "Note updated successfully"));
   } catch (error) {
     throw error instanceof ApiError
       ? error
