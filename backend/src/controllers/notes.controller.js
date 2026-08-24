@@ -230,14 +230,11 @@ const updateNote = asyncHandler(async (req, res) => {
     const query = {
       _id: noteId,
       owner: req.user?._id,
-    };
-
-    if (incomingRevision !== undefined && incomingRevision !== null) {
-      query.$or = [
-        { version: targetVersion - 1 },
+      $or: [
+        { version: currentVersion },
         { version: { $exists: false } },
-      ];
-    }
+      ],
+    };
 
     const updatedNote = await Note.findOneAndUpdate(
       query,

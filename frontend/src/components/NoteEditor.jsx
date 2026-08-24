@@ -1,28 +1,28 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import ReactQuill from 'react-quill-new';
-import 'react-quill-new/dist/quill.snow.css';
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import ReactQuill from "react-quill-new";
+import "react-quill-new/dist/quill.snow.css";
 import {
   fetchNoteById,
   updateNote,
   deleteNoteImage,
-} from '../store/notesSlice.js';
-import axiosInstance from '../utils/axiosInstance.js';
+} from "../store/notesSlice.js";
+import axiosInstance from "../utils/axiosInstance.js";
 
 const quillFormats = [
-  'header',
-  'bold',
-  'italic',
-  'underline',
-  'strike',
-  'list',
-  'blockquote',
-  'code-block',
-  'color',
-  'background',
-  'link',
-  'image',
+  "header",
+  "bold",
+  "italic",
+  "underline",
+  "strike",
+  "list",
+  "blockquote",
+  "code-block",
+  "color",
+  "background",
+  "link",
+  "image",
 ];
 
 /**
@@ -30,11 +30,12 @@ const quillFormats = [
  * Handles version paths, nested folders, and transformations
  */
 const extractCloudinaryPublicId = (url) => {
-  if (!url || typeof url !== 'string') return null;
-  if (!url.includes('cloudinary.com')) return null;
+  if (!url || typeof url !== "string") return null;
+  if (!url.includes("cloudinary.com")) return null;
 
   try {
-    const regex = /\/image\/upload\/(?:[a-zA-Z0-9_,-]+\/)*(?:v\d+\/)?([^.?#]+)(?:\.[a-zA-Z0-9]+)?/;
+    const regex =
+      /\/image\/upload\/(?:[a-zA-Z0-9_,-]+\/)*(?:v\d+\/)?([^.?#]+)(?:\.[a-zA-Z0-9]+)?/;
     const match = url.match(regex);
     if (match && match[1]) {
       return decodeURIComponent(match[1]);
@@ -42,11 +43,11 @@ const extractCloudinaryPublicId = (url) => {
 
     const urlObj = new URL(url);
     const pathname = urlObj.pathname;
-    const uploadIndex = pathname.indexOf('/upload/');
+    const uploadIndex = pathname.indexOf("/upload/");
     if (uploadIndex !== -1) {
-      let rest = pathname.substring(uploadIndex + '/upload/'.length);
-      rest = rest.replace(/^v\d+\//, '');
-      const lastDot = rest.lastIndexOf('.');
+      let rest = pathname.substring(uploadIndex + "/upload/".length);
+      rest = rest.replace(/^v\d+\//, "");
+      const lastDot = rest.lastIndexOf(".");
       if (lastDot !== -1) {
         rest = rest.substring(0, lastDot);
       }
@@ -63,7 +64,7 @@ const extractCloudinaryPublicId = (url) => {
  */
 const getImageUrlsMap = (html) => {
   const map = new Map();
-  if (!html || typeof html !== 'string') return map;
+  if (!html || typeof html !== "string") return map;
   const imgRegex = /<img[^>]*\ssrc=["']([^"']+)["'][^>]*>/gi;
   let match;
   while ((match = imgRegex.exec(html)) !== null) {
@@ -81,9 +82,9 @@ const NoteEditorForm = ({ note }) => {
   const { isSaving } = useSelector((state) => state.notes);
 
   // Local state for title, content, and save status
-  const [title, setTitle] = useState(note?.title || '');
-  const [content, setContent] = useState(note?.content || '');
-  const [saveStatus, setSaveStatus] = useState('saved'); // 'saved' | 'saving' | 'unsaved' | 'error'
+  const [title, setTitle] = useState(note?.title || "");
+  const [content, setContent] = useState(note?.content || "");
+  const [saveStatus, setSaveStatus] = useState("saved"); // 'saved' | 'saving' | 'unsaved' | 'error'
   const [lastSavedAt, setLastSavedAt] = useState(null);
 
   // Image upload state & error toast
@@ -98,8 +99,8 @@ const NoteEditorForm = ({ note }) => {
   const saveRequestIdRef = useRef(0);
 
   // Ref tracking current image URLs present in editor
-  const currentImagesRef = useRef(getImageUrlsMap(note?.content || ''));
-  const savedImagesRef = useRef(getImageUrlsMap(note?.content || ''));
+  const currentImagesRef = useRef(getImageUrlsMap(note?.content || ""));
+  const savedImagesRef = useRef(getImageUrlsMap(note?.content || ""));
 
   useEffect(() => {
     titleRef.current = title;
@@ -133,22 +134,30 @@ const NoteEditorForm = ({ note }) => {
       if (!note?._id) return;
 
       const titleToSave =
-        (overrideTitle !== undefined ? overrideTitle : titleRef.current)?.trim() ||
-        'Untitled';
+        (overrideTitle !== undefined
+          ? overrideTitle
+          : titleRef.current
+        )?.trim() || "Untitled";
       const contentToSave =
-        overrideContent !== undefined ? overrideContent : contentRef.current ?? '';
+        overrideContent !== undefined
+          ? overrideContent
+          : (contentRef.current ?? "");
 
       const requestId = ++saveRequestIdRef.current;
 
-      setSaveStatus('saving');
+      setSaveStatus("saving");
       try {
         await dispatch(
           updateNote({
             noteId: note._id,
             title: titleToSave,
             content: contentToSave,
-          })
+          }),
         ).unwrap();
+
+        if (saveRequestIdRef.current !== requestId) {
+          return;
+        }
 
         // Compare the persisted snapshot against the content just confirmed by the server
         const savedMap = getImageUrlsMap(contentToSave);
@@ -159,27 +168,27 @@ const NoteEditorForm = ({ note }) => {
               dispatch(deleteNoteImage({ publicId }))
                 .unwrap()
                 .catch((err) =>
-                  console.error(`Failed to delete orphaned image (${publicId}):`, err)
+                  console.error(
+                    `Failed to delete orphaned image (${publicId}):`,
+                    err,
+                  ),
                 );
             }
           }
         }
         savedImagesRef.current = savedMap;
 
-        // Only mark saved if this dispatch was not superseded by a newer one
-        if (saveRequestIdRef.current === requestId) {
-          setSaveStatus('saved');
-          setLastSavedAt(new Date());
-        }
+        setSaveStatus("saved");
+        setLastSavedAt(new Date());
       } catch (err) {
         // If superseded by a newer save, do not display error for this stale dispatch
         if (saveRequestIdRef.current === requestId) {
-          console.error('Failed to update note:', err);
-          setSaveStatus('error');
+          console.error("Failed to update note:", err);
+          setSaveStatus("error");
         }
       }
     },
-    [dispatch, note]
+    [dispatch, note],
   );
 
   // Flush any pending save, then clear timers on unmount.
@@ -204,20 +213,20 @@ const NoteEditorForm = ({ note }) => {
   // Warn before browser navigation/tab close if there are unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e) => {
-      if (saveStatus === 'unsaved') {
+      if (saveStatus === "unsaved") {
         e.preventDefault();
-        e.returnValue = '';
+        e.returnValue = "";
       }
     };
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener("beforeunload", handleBeforeUnload);
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [saveStatus]);
 
   const triggerDebouncedSave = useCallback(
     (newTitle, newContent) => {
-      setSaveStatus('unsaved');
+      setSaveStatus("unsaved");
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
@@ -225,7 +234,7 @@ const NoteEditorForm = ({ note }) => {
         performSave(newTitle, newContent);
       }, 10000);
     },
-    [performSave]
+    [performSave],
   );
 
   const handleTitleChange = (e) => {
@@ -246,7 +255,7 @@ const NoteEditorForm = ({ note }) => {
       setContent(value);
       triggerDebouncedSave(titleRef.current, value);
     },
-    [triggerDebouncedSave]
+    [triggerDebouncedSave],
   );
 
   const handleManualSave = useCallback(() => {
@@ -259,15 +268,15 @@ const NoteEditorForm = ({ note }) => {
   // Global keyboard shortcut: Ctrl+S / Cmd+S for manual save
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
         handleManualSave();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [handleManualSave]);
 
@@ -276,54 +285,61 @@ const NoteEditorForm = ({ note }) => {
    */
   const imageHandler = useCallback(() => {
     if (!note?._id) {
-      showErrorToast('Cannot upload image: Note is not loaded yet');
+      showErrorToast("Cannot upload image: Note is not loaded yet");
       return;
     }
 
-    const input = document.createElement('input');
-    input.setAttribute('type', 'file');
-    input.setAttribute('accept', 'image/*');
+    const input = document.createElement("input");
+    input.setAttribute("type", "file");
+    input.setAttribute("accept", "image/*");
     input.click();
 
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
 
-      if (!file.type.startsWith('image/')) {
-        showErrorToast('Please select a valid image file (PNG, JPEG, WebP, GIF, etc.)');
+      if (!file.type.startsWith("image/")) {
+        showErrorToast(
+          "Please select a valid image file (PNG, JPEG, WebP, GIF, etc.)",
+        );
         return;
       }
 
       if (file.size > 10 * 1024 * 1024) {
-        showErrorToast('Image size exceeds 10MB limit');
+        showErrorToast("Image size exceeds 10MB limit");
         return;
       }
 
       const formData = new FormData();
-      formData.append('image', file);
-      formData.append('noteId', note._id);
+      formData.append("image", file);
+      formData.append("noteId", note._id);
 
       setIsUploadingImage(true);
 
       try {
-        const response = await axiosInstance.post('/notes/upload-image', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
+        const response = await axiosInstance.post(
+          "/notes/upload-image",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
           },
-        });
+        );
 
-        const uploadedUrl =
-          response.data?.data?.url || response.data?.url;
+        const uploadedUrl = response.data?.data?.url || response.data?.url;
 
         if (!uploadedUrl) {
-          throw new Error('Image URL was not returned by server');
+          throw new Error("Image URL was not returned by server");
         }
 
         const editor = quillRef.current?.getEditor();
         if (editor) {
-          const range = editor.getSelection(true) || { index: editor.getLength() };
+          const range = editor.getSelection(true) || {
+            index: editor.getLength(),
+          };
           const insertIndex = range.index ?? editor.getLength();
-          editor.insertEmbed(insertIndex, 'image', uploadedUrl);
+          editor.insertEmbed(insertIndex, "image", uploadedUrl);
           editor.setSelection(insertIndex + 1);
 
           const updatedHtml = editor.root.innerHTML;
@@ -333,11 +349,11 @@ const NoteEditorForm = ({ note }) => {
           triggerDebouncedSave(titleRef.current, updatedHtml);
         }
       } catch (error) {
-        console.error('Image upload failed:', error);
+        console.error("Image upload failed:", error);
         const errorMessage =
           error.response?.data?.message ||
           error.message ||
-          'Failed to upload image. Please try again.';
+          "Failed to upload image. Please try again.";
         showErrorToast(errorMessage, 5000);
       } finally {
         setIsUploadingImage(false);
@@ -350,24 +366,24 @@ const NoteEditorForm = ({ note }) => {
       toolbar: {
         container: [
           [{ header: [1, 2, 3, false] }],
-          ['bold', 'italic', 'underline', 'strike'],
-          [{ list: 'ordered' }, { list: 'bullet' }],
-          ['blockquote', 'code-block'],
+          ["bold", "italic", "underline", "strike"],
+          [{ list: "ordered" }, { list: "bullet" }],
+          ["blockquote", "code-block"],
           [{ color: [] }, { background: [] }],
-          ['link', 'image'],
-          ['clean'],
+          ["link", "image"],
+          ["clean"],
         ],
         handlers: {
           image: imageHandler,
         },
       },
     }),
-    [imageHandler]
+    [imageHandler],
   );
 
   const formatTime = (date) => {
-    if (!date) return '';
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (!date) return "";
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
   return (
@@ -389,13 +405,28 @@ const NoteEditorForm = ({ note }) => {
         <div className="flex items-center space-x-2">
           {isUploadingImage ? (
             <div className="flex items-center space-x-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-medium">
-              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              <svg
+                className="w-3.5 h-3.5 animate-spin"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
               </svg>
               <span>Uploading Image...</span>
             </div>
-          ) : saveStatus === 'saving' || isSaving ? (
+          ) : saveStatus === "saving" || isSaving ? (
             <div className="flex items-center space-x-1.5 text-xs text-zinc-500 dark:text-zinc-400">
               <svg
                 className="w-3.5 h-3.5 animate-spin text-indigo-600 dark:text-indigo-400"
@@ -418,14 +449,19 @@ const NoteEditorForm = ({ note }) => {
               </svg>
               <span>Saving...</span>
             </div>
-          ) : saveStatus === 'unsaved' ? (
+          ) : saveStatus === "unsaved" ? (
             <button
               type="button"
               onClick={handleManualSave}
               title="Save changes now (Ctrl+S)"
               className="flex items-center space-x-1.5 px-3 py-1 text-xs font-semibold rounded-md bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-all cursor-pointer"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -438,14 +474,19 @@ const NoteEditorForm = ({ note }) => {
                 Ctrl+S
               </kbd>
             </button>
-          ) : saveStatus === 'error' ? (
+          ) : saveStatus === "error" ? (
             <button
               type="button"
               onClick={handleManualSave}
               title="Retry saving note (Ctrl+S)"
               className="flex items-center space-x-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 hover:bg-red-200 transition-colors cursor-pointer"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -467,7 +508,12 @@ const NoteEditorForm = ({ note }) => {
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
                 <span>Saved</span>
               </div>
@@ -477,7 +523,12 @@ const NoteEditorForm = ({ note }) => {
                 title="Save now (Ctrl+S)"
                 className="flex items-center space-x-1 px-2 py-0.5 text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors cursor-pointer"
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className="w-3 h-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -502,8 +553,18 @@ const NoteEditorForm = ({ note }) => {
           role="alert"
           aria-live="assertive"
         >
-          <svg className="w-4 h-4 shrink-0 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <svg
+            className="w-4 h-4 shrink-0 text-white"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
           <span className="pr-1">{errorToast}</span>
           <button
@@ -511,8 +572,18 @@ const NoteEditorForm = ({ note }) => {
             className="p-1 hover:bg-white/20 rounded transition-colors cursor-pointer"
             aria-label="Dismiss error"
           >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-3 h-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -556,7 +627,9 @@ const NoteEditor = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { notes, activeNote, isLoading, error } = useSelector((state) => state.notes);
+  const { notes, activeNote, isLoading, error } = useSelector(
+    (state) => state.notes,
+  );
 
   const existingNote = notes.find((n) => n._id === noteId);
 
@@ -567,7 +640,8 @@ const NoteEditor = () => {
     }
   }, [noteId, existingNote, activeNote, dispatch]);
 
-  const currentNote = existingNote || (activeNote?._id === noteId ? activeNote : null);
+  const currentNote =
+    existingNote || (activeNote?._id === noteId ? activeNote : null);
 
   // Skeleton Loader when note is fetching
   if (isLoading && !currentNote) {
@@ -596,10 +670,10 @@ const NoteEditor = () => {
         </h2>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6 max-w-sm">
           {error ||
-            'The note you are trying to view does not exist or you do not have permission to access it.'}
+            "The note you are trying to view does not exist or you do not have permission to access it."}
         </p>
         <button
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate("/dashboard")}
           className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-xs cursor-pointer"
         >
           Return to Dashboard
