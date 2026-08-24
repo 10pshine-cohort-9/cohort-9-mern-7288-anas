@@ -60,17 +60,29 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950 px-4 py-12">
-      <div className="max-w-md w-full bg-white dark:bg-zinc-900 rounded-2xl shadow-xl p-8 border border-gray-100 dark:border-zinc-800">
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center justify-center space-x-2 mb-4 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white font-bold text-xl shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
+    <div className="relative min-h-screen flex items-center justify-center bg-slate-50 px-4 py-12 overflow-hidden selection:bg-indigo-500 selection:text-white">
+      {/* Ambient Depth Glowing Orbs */}
+      <div className="absolute top-1/4 left-1/3 w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-[120px] pointer-events-none -z-10" />
+      <div className="absolute bottom-1/4 right-1/3 w-[450px] h-[450px] bg-indigo-400/10 rounded-full blur-[100px] pointer-events-none -z-10" />
+
+      {/* Authentication Card */}
+      <div className="relative max-w-md w-full bg-white rounded-3xl border border-slate-100 shadow-2xl shadow-slate-200/60 p-8 md:p-10">
+        {/* Top Logo & Header */}
+        <div className="text-center">
+          <Link to="/" className="inline-flex items-center justify-center space-x-2 group">
+            <div className="w-10 h-10 rounded-xl bg-[#1E1B4B] flex items-center justify-center text-white font-bold text-xl shadow-md shadow-purple-500/20 group-hover:scale-105 transition-transform">
               ⚡
             </div>
+            <span className="font-extrabold text-2xl tracking-tight text-[#1E1B4B]">
+              NotesFlow
+            </span>
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome Back</h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-zinc-400">
-            Sign in to access your notes workspace
+
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight text-center mt-6">
+            Welcome back
+          </h1>
+          <p className="text-sm text-slate-500 text-center mt-2 mb-8 font-normal">
+            Sign in to access your personal workspace.
           </p>
         </div>
 
@@ -79,7 +91,7 @@ const Login = () => {
           <div
             role="alert"
             aria-live="assertive"
-            className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/80 text-sm text-red-700 dark:text-red-300 flex items-start space-x-2.5"
+            className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-100 text-sm text-red-700 flex items-start space-x-2.5"
           >
             <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -88,9 +100,10 @@ const Login = () => {
           </div>
         )}
 
+        {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1.5">
+            <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1.5">
               Email Address or Username
             </label>
             <input
@@ -101,21 +114,21 @@ const Login = () => {
                 required: 'Email address or username is required',
                 onChange: handleInputChange,
               })}
-              className={`w-full px-4 py-2.5 rounded-lg border text-gray-900 dark:text-white bg-white dark:bg-zinc-800 transition duration-150 focus:outline-none focus:ring-2 ${
+              className={`bg-slate-50 border rounded-xl px-4 py-3 w-full text-slate-900 placeholder-slate-400 transition-all focus:outline-none focus:ring-2 ${
                 errors.email
-                  ? 'border-red-500 focus:ring-red-400'
-                  : 'border-gray-300 dark:border-zinc-700 focus:ring-indigo-500 focus:border-transparent'
+                  ? 'border-red-400 focus:ring-red-500/20 focus:border-red-500'
+                  : 'border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-500'
               }`}
             />
             {errors.email && (
-              <p className="mt-1.5 text-xs text-red-600 dark:text-red-400 font-medium">
+              <p className="mt-1.5 text-xs text-red-600 font-medium">
                 {errors.email.message}
               </p>
             )}
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1.5">
+            <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1.5">
               Password
             </label>
             <input
@@ -126,14 +139,14 @@ const Login = () => {
                 required: 'Password is required',
                 onChange: handleInputChange,
               })}
-              className={`w-full px-4 py-2.5 rounded-lg border text-gray-900 dark:text-white bg-white dark:bg-zinc-800 transition duration-150 focus:outline-none focus:ring-2 ${
+              className={`bg-slate-50 border rounded-xl px-4 py-3 w-full text-slate-900 placeholder-slate-400 transition-all focus:outline-none focus:ring-2 ${
                 errors.password
-                  ? 'border-red-500 focus:ring-red-400'
-                  : 'border-gray-300 dark:border-zinc-700 focus:ring-indigo-500 focus:border-transparent'
+                  ? 'border-red-400 focus:ring-red-500/20 focus:border-red-500'
+                  : 'border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-500'
               }`}
             />
             {errors.password && (
-              <p className="mt-1.5 text-xs text-red-600 dark:text-red-400 font-medium">
+              <p className="mt-1.5 text-xs text-red-600 font-medium">
                 {errors.password.message}
               </p>
             )}
@@ -142,7 +155,7 @@ const Login = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex justify-center items-center py-3 px-4 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150 shadow-md shadow-indigo-600/20 cursor-pointer"
+            className="bg-slate-900 text-white font-semibold rounded-full w-full py-3.5 mt-6 shadow-md shadow-slate-900/10 hover:bg-slate-800 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex justify-center items-center text-sm"
           >
             {isLoading ? (
               <span className="inline-flex items-center">
@@ -158,10 +171,13 @@ const Login = () => {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-600 dark:text-zinc-400">
+        {/* Separator & Footer Link */}
+        <div className="border-t border-slate-100 my-6" />
+
+        <p className="text-sm text-slate-500 text-center">
           Don&apos;t have an account?{' '}
-          <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 hover:underline">
-            Sign Up Free
+          <Link to="/register" className="font-bold text-[#1E1B4B] hover:text-blue-700 hover:underline">
+            Sign Up
           </Link>
         </p>
       </div>
