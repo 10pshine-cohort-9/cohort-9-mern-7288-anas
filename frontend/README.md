@@ -1,16 +1,84 @@
-# React + Vite
+# NotesFlow - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+NotesFlow is a modern, Notion-like rich-text note-taking workspace application built with **React**, **Redux Toolkit**, **Tailwind CSS**, and **Vite**. It features an intuitive rich-text editor with inline media uploads, note management, secure JWT authentication, and dark mode support.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🚀 Features
 
-## React Compiler
+- **Notion-Style Rich Text Editor**: Powered by React Quill, offering full formatting options including headers, lists, blockquotes, code snippets, and inline image uploads.
+- **Inline Image Handling**: Upload images directly into notes with automated Cloudinary integration and tracked image lifecycle.
+- **Workspace Dashboard**: Create, view, search, organize, and delete notes effortlessly through a clean sidebar navigation interface.
+- **Secure Authentication**: Integrated with JWT authentication (Access & Refresh Tokens) with protected routes and persistent login state via Redux.
+- **Modern UI & Dark Mode**: Responsive interface styled with Tailwind CSS, supporting seamless dark and light mode themes.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 🛠️ Tech Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **Framework**: [React 19](https://react.dev/) + [Vite](https://vitejs.dev/)
+- **State Management**: [Redux Toolkit](https://redux-toolkit.js.org/) (`@reduxjs/toolkit`, `react-redux`)
+- **Routing**: [React Router v7](https://reactrouter.com/) (`react-router-dom`)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **Rich Text Editor**: `react-quill-new`
+- **Form Handling**: `react-hook-form`
+- **HTTP Client**: `axios`
+
+---
+
+## 📂 Project Structure
+
+```text
+frontend/
+├── src/
+│   ├── api/          # Axios instance and API call configurations
+│   ├── components/   # Reusable UI components (NoteEditor, ProtectedRoute, etc.)
+│   ├── context/      # React contexts (ThemeContext, etc.)
+│   ├── layouts/      # Layout components (DashboardLayout, etc.)
+│   ├── pages/        # Application views (Home, Login, Register, Dashboard, NoteEditor)
+│   ├── store/        # Redux store and slices (authSlice, noteSlice)
+│   ├── utils/        # Helper functions and loggers
+│   ├── App.jsx       # App routes and global layout setup
+│   ├── main.jsx      # Entry point
+│   └── index.css     # Tailwind CSS styles and theme rules
+├── public/           # Static assets and favicon
+├── index.html        # Main HTML file
+├── vite.config.js    # Vite configuration
+└── package.json      # Dependencies and scripts
+```
+
+---
+
+## 💻 Getting Started
+
+### Prerequisites
+
+Ensure you have **Node.js** (v18+ recommended) and **npm** installed.
+
+### Installation
+
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+4. Open `http://localhost:5173` in your browser.
+
+---
+
+## 📜 Available Scripts
+
+- `npm run dev` - Starts the Vite development server with HMR.
+- `npm run build` - Builds the application for production deployment.
+- `npm run preview` - Locally previews the production build.
+- `npm run lint` - Runs ESLint to check for code quality and style issues.

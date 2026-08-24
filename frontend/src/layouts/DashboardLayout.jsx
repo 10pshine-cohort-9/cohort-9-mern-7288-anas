@@ -64,7 +64,7 @@ const DashboardLayout = () => {
       console.error('Logout error on server:', err);
     } finally {
       dispatch(logout());
-      navigate('/login');
+      navigate('/');
       setIsLoggingOut(false);
     }
   };

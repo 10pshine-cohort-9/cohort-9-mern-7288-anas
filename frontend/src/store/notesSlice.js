@@ -86,6 +86,8 @@ export const updateNote = createAsyncThunk(
         revToSend = Number(currentRev) + 1;
       }
 
+      thunkAPI.dispatch(reserveRevision({ noteId, revision: revToSend }));
+
       const body = {
         revision: Number(revToSend),
         version: Number(revToSend),
@@ -151,6 +153,15 @@ const notesSlice = createSlice({
     },
     clearNotesError: (state) => {
       state.error = null;
+    },
+    reserveRevision: (state, action) => {
+      const { noteId, revision } = action.payload || {};
+      if (noteId && revision !== undefined && revision !== null) {
+        state.latestDispatchedRevision[noteId] = Math.max(
+          state.latestDispatchedRevision[noteId] || 0,
+          Number(revision)
+        );
+      }
     },
   },
   extraReducers: (builder) => {
@@ -366,5 +377,5 @@ const notesSlice = createSlice({
   },
 });
 
-export const { setActiveNote, clearActiveNote, clearNotesError } = notesSlice.actions;
+export const { setActiveNote, clearActiveNote, clearNotesError, reserveRevision } = notesSlice.actions;
 export default notesSlice.reducer;

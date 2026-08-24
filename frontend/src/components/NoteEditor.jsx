@@ -27,33 +27,48 @@ const quillFormats = [
 
 /**
  * Extract Cloudinary publicId from a given image URL
- * Handles version paths, nested folders, and transformations
+ * Preserves folder paths (e.g. notes/user1/img) and handles optional version/transformations
  */
 const extractCloudinaryPublicId = (url) => {
   if (!url || typeof url !== "string") return null;
   if (!url.includes("cloudinary.com")) return null;
 
   try {
-    const regex =
-      /\/image\/upload\/(?:[a-zA-Z0-9_,-]+\/)*(?:v\d+\/)?([^.?#]+)(?:\.[a-zA-Z0-9]+)?/;
-    const match = url.match(regex);
-    if (match && match[1]) {
-      return decodeURIComponent(match[1]);
-    }
-
     const urlObj = new URL(url);
     const pathname = urlObj.pathname;
     const uploadIndex = pathname.indexOf("/upload/");
-    if (uploadIndex !== -1) {
-      let rest = pathname.substring(uploadIndex + "/upload/".length);
-      rest = rest.replace(/^v\d+\//, "");
-      const lastDot = rest.lastIndexOf(".");
-      if (lastDot !== -1) {
-        rest = rest.substring(0, lastDot);
-      }
-      return rest ? decodeURIComponent(rest) : null;
+    if (uploadIndex === -1) return null;
+
+    let rest = pathname.substring(uploadIndex + "/upload/".length);
+    const segments = rest.split("/").filter(Boolean);
+
+    // Find version segment (v followed by digits)
+    const versionIndex = segments.findIndex((seg) => /^v\d+$/.test(seg));
+
+    let publicIdSegments = [];
+    if (versionIndex !== -1) {
+      publicIdSegments = segments.slice(versionIndex + 1);
+    } else {
+      const firstNonTransformIndex = segments.findIndex(
+        (seg) =>
+          !/^[a-z]_[a-zA-Z0-9_,-]+$/.test(seg) &&
+          !/^[a-zA-Z0-9_,-]+=[a-zA-Z0-9_,-]+$/.test(seg),
+      );
+      publicIdSegments =
+        firstNonTransformIndex !== -1
+          ? segments.slice(firstNonTransformIndex)
+          : segments;
     }
-    return null;
+
+    if (publicIdSegments.length === 0) return null;
+
+    let fullPublicId = publicIdSegments.join("/");
+    const lastDot = fullPublicId.lastIndexOf(".");
+    if (lastDot !== -1) {
+      fullPublicId = fullPublicId.substring(0, lastDot);
+    }
+
+    return fullPublicId ? decodeURIComponent(fullPublicId) : null;
   } catch {
     return null;
   }
@@ -101,6 +116,8 @@ const NoteEditorForm = ({ note }) => {
   // Ref tracking current image URLs present in editor
   const currentImagesRef = useRef(getImageUrlsMap(note?.content || ""));
   const savedImagesRef = useRef(getImageUrlsMap(note?.content || ""));
+  // Ref mapping image URLs to server-returned public_id
+  const urlToPublicIdRef = useRef(new Map());
 
   useEffect(() => {
     titleRef.current = title;
@@ -163,7 +180,9 @@ const NoteEditorForm = ({ note }) => {
         const savedMap = getImageUrlsMap(contentToSave);
         for (const [oldUrl] of savedImagesRef.current) {
           if (!savedMap.has(oldUrl)) {
-            const publicId = extractCloudinaryPublicId(oldUrl);
+            const publicId =
+              urlToPublicIdRef.current.get(oldUrl) ||
+              extractCloudinaryPublicId(oldUrl);
             if (publicId) {
               dispatch(deleteNoteImage({ publicId }))
                 .unwrap()
@@ -328,9 +347,14 @@ const NoteEditorForm = ({ note }) => {
         );
 
         const uploadedUrl = response.data?.data?.url || response.data?.url;
+        const publicId = response.data?.data?.public_id || response.data?.public_id;
 
         if (!uploadedUrl) {
           throw new Error("Image URL was not returned by server");
+        }
+
+        if (uploadedUrl && publicId) {
+          urlToPublicIdRef.current.set(uploadedUrl, publicId);
         }
 
         const editor = quillRef.current?.getEditor();
