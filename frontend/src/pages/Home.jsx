@@ -79,7 +79,7 @@ const Home = () => {
                 to={isAuthenticated ? '/dashboard' : '/register'}
                 className="bg-[#1E1B4B] hover:bg-[#2D2A6E] text-white rounded-full px-7 py-3 text-sm font-semibold shadow-lg shadow-indigo-950/20 transition-all hover:scale-[1.02] inline-flex items-center space-x-2"
               >
-                <span>{isAuthenticated ? 'Open Dashboard' : 'Open Dashboard'}</span>
+                <span>{isAuthenticated ? 'Open Dashboard' : 'Get Started Free'}</span>
                 <span>&rarr;</span>
               </Link>
 
@@ -87,7 +87,7 @@ const Home = () => {
                 to={isAuthenticated ? '/dashboard' : '/login'}
                 className="bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 rounded-full px-7 py-3 text-sm font-semibold shadow-sm transition-all hover:scale-[1.02]"
               >
-                {isAuthenticated ? 'View My Notes' : 'View My Notes'}
+                {isAuthenticated ? 'View My Notes' : 'Log In'}
               </Link>
             </div>
 
@@ -377,7 +377,7 @@ const Home = () => {
               to={isAuthenticated ? '/dashboard' : '/register'}
               className="inline-flex items-center space-x-2 px-7 py-3 rounded-full bg-[#1E1B4B] hover:bg-[#2D2A6E] text-white text-xs font-semibold shadow-lg shadow-indigo-950/20 transition-all hover:scale-[1.02]"
             >
-              <span>{isAuthenticated ? 'Go to My Dashboard' : 'Go to My Dashboard'}</span>
+              <span>{isAuthenticated ? 'Go to My Dashboard' : 'Create Your Account'}</span>
               <span>&rarr;</span>
             </Link>
           </div>
