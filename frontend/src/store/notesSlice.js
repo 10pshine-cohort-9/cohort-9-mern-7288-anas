@@ -68,11 +68,28 @@ export const fetchNoteById = createAsyncThunk(
   }
 );
 
+const updateQueues = new Map();
+
 export const updateNote = createAsyncThunk(
   "notes/updateNote",
   async ({ noteId, title, content, revision, version }, thunkAPI) => {
-    let revToSend = revision ?? version;
+    const priorPromise = updateQueues.get(noteId) || Promise.resolve();
+
+    let resolveCurrent;
+    const currentPromise = new Promise((resolve) => {
+      resolveCurrent = resolve;
+    });
+
+    updateQueues.set(
+      noteId,
+      priorPromise.then(() => currentPromise).catch(() => currentPromise)
+    );
+
+    let revToSend;
     try {
+      await priorPromise.catch(() => {});
+
+      revToSend = revision ?? version;
       if (revToSend === undefined || revToSend === null) {
         const state = thunkAPI.getState()?.notes;
         const noteInState =
@@ -104,6 +121,8 @@ export const updateNote = createAsyncThunk(
         noteId,
         revision: revToSend ?? null,
       });
+    } finally {
+      resolveCurrent();
     }
   }
 );

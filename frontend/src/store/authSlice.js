@@ -19,12 +19,11 @@ export const login = createAsyncThunk(
   "auth/login",
   async ({ email, username, password }, { rejectWithValue }) => {
     try {
-      const identifier = (email || username).trim();
+      const identifier = (username || email || "").trim();
       const payload = {
+        username: username ? username.trim() : identifier,
+        email: email ? email.trim() : identifier,
         password,
-        ...(identifier.includes("@")
-          ? { email: identifier }
-          : { username: identifier }),
       };
       const response = await axiosInstance.post("/users/login", payload);
       return response.data?.data?.user || response.data?.data || response.data;
