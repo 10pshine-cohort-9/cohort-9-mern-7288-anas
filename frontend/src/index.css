@@ -8,10 +8,6 @@
   border-bottom: 1px solid rgba(228, 228, 231, 0.6) !important;
 }
 
-:is(.dark, [data-theme="dark"]) .notion-quill-wrapper .ql-toolbar.ql-snow {
-  border-bottom: 1px solid rgba(39, 39, 42, 0.8) !important;
-}
-
 .notion-quill-wrapper .ql-container.ql-snow {
   border: none !important;
   font-family: inherit !important;
@@ -33,84 +29,6 @@
   color: #a1a1aa !important;
 }
 
-:is(.dark, [data-theme="dark"]) .notion-quill-wrapper .ql-editor.ql-blank::before {
-  color: #71717a !important;
-}
-
-/* Dark mode toolbar icon & dropdown styling for Quill */
-:is(.dark, [data-theme="dark"]) .notion-quill-wrapper .ql-snow .ql-stroke {
-  stroke: #a1a1aa !important;
-}
-
-:is(.dark, [data-theme="dark"]) .notion-quill-wrapper .ql-snow .ql-stroke:hover {
-  stroke: #f4f4f5 !important;
-}
-
-:is(.dark, [data-theme="dark"]) .notion-quill-wrapper .ql-snow .ql-fill {
-  fill: #a1a1aa !important;
-}
-
-:is(.dark, [data-theme="dark"]) .notion-quill-wrapper .ql-snow .ql-fill:hover {
-  fill: #f4f4f5 !important;
-}
-
-:is(.dark, [data-theme="dark"]) .notion-quill-wrapper .ql-snow .ql-picker {
-  color: #a1a1aa !important;
-}
-
-:is(.dark, [data-theme="dark"]) .notion-quill-wrapper .ql-snow .ql-picker:hover {
-  color: #f4f4f5 !important;
-}
-
-:is(.dark, [data-theme="dark"]) .notion-quill-wrapper .ql-snow .ql-picker-label {
-  color: #a1a1aa !important;
-}
-
-:is(.dark, [data-theme="dark"]) .notion-quill-wrapper .ql-snow .ql-picker-options {
-  background-color: #18181b !important;
-  border: 1px solid #27272a !important;
-  color: #f4f4f5 !important;
-  border-radius: 0.375rem !important;
-  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.4) !important;
-}
-
-:is(.dark, [data-theme="dark"]) .notion-quill-wrapper .ql-snow .ql-picker-item {
-  color: #d4d4d8 !important;
-}
-
-:is(.dark, [data-theme="dark"]) .notion-quill-wrapper .ql-snow .ql-picker-item:hover {
-  color: #818cf8 !important;
-}
-
-:is(.dark, [data-theme="dark"]) .notion-quill-wrapper .ql-snow.ql-toolbar button:hover,
-:is(.dark, [data-theme="dark"]) .notion-quill-wrapper .ql-snow .ql-toolbar button:hover {
-  color: #f4f4f5 !important;
-}
-
-:is(.dark, [data-theme="dark"]) .notion-quill-wrapper .ql-snow.ql-toolbar button.ql-active .ql-stroke,
-:is(.dark, [data-theme="dark"]) .notion-quill-wrapper .ql-snow .ql-toolbar button.ql-active .ql-stroke {
-  stroke: #818cf8 !important;
-}
-
-:is(.dark, [data-theme="dark"]) .notion-quill-wrapper .ql-snow.ql-toolbar button.ql-active .ql-fill,
-:is(.dark, [data-theme="dark"]) .notion-quill-wrapper .ql-snow .ql-toolbar button.ql-active .ql-fill {
-  fill: #818cf8 !important;
-}
-
-:is(.dark, [data-theme="dark"]) .notion-quill-wrapper .ql-editor pre.ql-syntax {
-  background-color: #18181b !important;
-  color: #e4e4e7 !important;
-  border: 1px solid #27272a !important;
-  border-radius: 0.375rem !important;
-  padding: 0.75rem 1rem !important;
-}
-
-:is(.dark, [data-theme="dark"]) .notion-quill-wrapper .ql-editor blockquote {
-  border-left: 3px solid #6366f1 !important;
-  color: #d4d4d8 !important;
-  padding-left: 1rem !important;
-}
-
 .notion-quill-wrapper .ql-editor img {
   max-width: 100%;
   height: auto;
@@ -120,3 +38,86 @@
   display: block;
 }
 
+/* Dark mode toolbar icon & dropdown styling for Quill */
+@media (prefers-color-scheme: dark) {
+  .notion-quill-wrapper .ql-toolbar.ql-snow {
+    border-bottom: 1px solid rgba(39, 39, 42, 0.8) !important;
+  }
+
+  .notion-quill-wrapper .ql-editor.ql-blank::before {
+    color: #71717a !important;
+  }
+
+  .notion-quill-wrapper .ql-snow .ql-stroke {
+    stroke: #a1a1aa !important;
+  }
+
+  .notion-quill-wrapper .ql-snow .ql-stroke:hover {
+    stroke: #f4f4f5 !important;
+  }
+
+  .notion-quill-wrapper .ql-snow .ql-fill {
+    fill: #a1a1aa !important;
+  }
+
+  .notion-quill-wrapper .ql-snow .ql-fill:hover {
+    fill: #f4f4f5 !important;
+  }
+
+  .notion-quill-wrapper .ql-snow .ql-picker {
+    color: #a1a1aa !important;
+  }
+
+  .notion-quill-wrapper .ql-snow .ql-picker:hover {
+    color: #f4f4f5 !important;
+  }
+
+  .notion-quill-wrapper .ql-snow .ql-picker-label {
+    color: #a1a1aa !important;
+  }
+
+  .notion-quill-wrapper .ql-snow .ql-picker-options {
+    background-color: #18181b !important;
+    border: 1px solid #27272a !important;
+    color: #f4f4f5 !important;
+    border-radius: 0.375rem !important;
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  .notion-quill-wrapper .ql-snow .ql-picker-item {
+    color: #d4d4d8 !important;
+  }
+
+  .notion-quill-wrapper .ql-snow .ql-picker-item:hover {
+    color: #818cf8 !important;
+  }
+
+  .notion-quill-wrapper .ql-snow.ql-toolbar button:hover,
+  .notion-quill-wrapper .ql-snow .ql-toolbar button:hover {
+    color: #f4f4f5 !important;
+  }
+
+  .notion-quill-wrapper .ql-snow.ql-toolbar button.ql-active .ql-stroke,
+  .notion-quill-wrapper .ql-snow .ql-toolbar button.ql-active .ql-stroke {
+    stroke: #818cf8 !important;
+  }
+
+  .notion-quill-wrapper .ql-snow.ql-toolbar button.ql-active .ql-fill,
+  .notion-quill-wrapper .ql-snow .ql-toolbar button.ql-active .ql-fill {
+    fill: #818cf8 !important;
+  }
+
+  .notion-quill-wrapper .ql-editor pre.ql-syntax {
+    background-color: #18181b !important;
+    color: #e4e4e7 !important;
+    border: 1px solid #27272a !important;
+    border-radius: 0.375rem !important;
+    padding: 0.75rem 1rem !important;
+  }
+
+  .notion-quill-wrapper .ql-editor blockquote {
+    border-left: 3px solid #6366f1 !important;
+    color: #d4d4d8 !important;
+    padding-left: 1rem !important;
+  }
+}

@@ -175,8 +175,10 @@ const updateNote = asyncHandler(async (req, res) => {
     );
   }
 
-  if (title !== undefined && title.trim() === "") {
-    throw new ApiError(400, "Title cannot be empty");
+  if (title !== undefined) {
+    if (typeof title !== "string" || title.trim() === "") {
+      throw new ApiError(400, "Title must be a non-empty string");
+    }
   }
 
   try {
@@ -193,7 +195,6 @@ const updateNote = asyncHandler(async (req, res) => {
     const incomingRevision = revision ?? version;
     const currentVersion = existingNote.version ?? 0;
 
-    
     if (incomingRevision !== undefined && incomingRevision !== null) {
       const incomingRevNum = Number(incomingRevision);
       if (
@@ -241,7 +242,7 @@ const updateNote = asyncHandler(async (req, res) => {
     const updatedNote = await Note.findOneAndUpdate(
       query,
       { $set: updateFields },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!updatedNote) {

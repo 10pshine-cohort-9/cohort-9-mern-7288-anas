@@ -95,7 +95,7 @@ const NoteEditorForm = ({ note }) => {
   const debounceTimerRef = useRef(null);
   const titleRef = useRef(title);
   const contentRef = useRef(content);
-  const revisionRef = useRef(Number(note?.version ?? note?.revision ?? 1));
+  const saveRequestIdRef = useRef(0);
 
   // Ref tracking current image URLs present in editor
   const currentImagesRef = useRef(getImageUrlsMap(note?.content || ''));
@@ -110,28 +110,11 @@ const NoteEditorForm = ({ note }) => {
   }, [content]);
 
   useEffect(() => {
-    const noteRev = Number(note?.version ?? note?.revision ?? 1);
-    revisionRef.current = Math.max(revisionRef.current, noteRev);
-  }, [note?.version, note?.revision]);
-
-  useEffect(() => {
     if (note?.content) {
       currentImagesRef.current = getImageUrlsMap(note.content);
       savedImagesRef.current = getImageUrlsMap(note.content);
     }
   }, [note]);
-
-  // Cleanup timers on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-      if (toastTimeoutRef.current) {
-        clearTimeout(toastTimeoutRef.current);
-      }
-    };
-  }, []);
 
   const showErrorToast = useCallback((message, duration = 5000) => {
     if (toastTimeoutRef.current) {
@@ -155,8 +138,7 @@ const NoteEditorForm = ({ note }) => {
       const contentToSave =
         overrideContent !== undefined ? overrideContent : contentRef.current ?? '';
 
-      revisionRef.current += 1;
-      const currentRevision = revisionRef.current;
+      const requestId = ++saveRequestIdRef.current;
 
       setSaveStatus('saving');
       try {
@@ -165,8 +147,6 @@ const NoteEditorForm = ({ note }) => {
             noteId: note._id,
             title: titleToSave,
             content: contentToSave,
-            revision: currentRevision,
-            version: currentRevision,
           })
         ).unwrap();
 
@@ -187,21 +167,53 @@ const NoteEditorForm = ({ note }) => {
         savedImagesRef.current = savedMap;
 
         // Only mark saved if this dispatch was not superseded by a newer one
-        if (revisionRef.current === currentRevision) {
+        if (saveRequestIdRef.current === requestId) {
           setSaveStatus('saved');
           setLastSavedAt(new Date());
         }
       } catch (err) {
         // If superseded by a newer save, do not display error for this stale dispatch
-        if (revisionRef.current === currentRevision) {
+        if (saveRequestIdRef.current === requestId) {
           console.error('Failed to update note:', err);
-          revisionRef.current = Number(note?.version ?? note?.revision ?? 1);
           setSaveStatus('error');
         }
       }
     },
     [dispatch, note]
   );
+
+  // Flush any pending save, then clear timers on unmount.
+  const performSaveRef = useRef(null);
+  useEffect(() => {
+    performSaveRef.current = performSave;
+  }, [performSave]);
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+        performSaveRef.current?.(titleRef.current, contentRef.current);
+      }
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Warn before browser navigation/tab close if there are unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (saveStatus === 'unsaved') {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [saveStatus]);
 
   const triggerDebouncedSave = useCallback(
     (newTitle, newContent) => {
@@ -361,7 +373,7 @@ const NoteEditorForm = ({ note }) => {
   return (
     <div className="relative flex flex-col h-full bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
       {/* Top Action Bar */}
-      <div className="sticky top-0 z-10 flex items-center justify-between px-6 sm:px-12 md:px-16 py-2 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-100 dark:border-zinc-850">
+      <div className="sticky top-0 z-10 flex items-center justify-between px-6 sm:px-12 md:px-16 py-2 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-100 dark:border-zinc-800">
         <div className="flex items-center space-x-2 text-xs text-zinc-400 dark:text-zinc-500">
           <span className="inline-block w-2 h-2 rounded-full bg-emerald-500/80" />
           <span>Notion Editor</span>
@@ -562,11 +574,11 @@ const NoteEditor = () => {
     return (
       <div className="max-w-4xl mx-auto px-6 sm:px-12 md:px-16 pt-8 pb-20 animate-pulse">
         <div className="h-10 bg-zinc-200 dark:bg-zinc-800 rounded-md w-3/4 mb-6" />
-        <div className="h-8 bg-zinc-100 dark:bg-zinc-850 rounded-md w-full mb-8" />
+        <div className="h-8 bg-zinc-100 dark:bg-zinc-800 rounded-md w-full mb-8" />
         <div className="space-y-3">
-          <div className="h-4 bg-zinc-100 dark:bg-zinc-850 rounded w-full" />
-          <div className="h-4 bg-zinc-100 dark:bg-zinc-850 rounded w-5/6" />
-          <div className="h-4 bg-zinc-100 dark:bg-zinc-850 rounded w-4/6" />
+          <div className="h-4 bg-zinc-100 dark:bg-zinc-800 rounded w-full" />
+          <div className="h-4 bg-zinc-100 dark:bg-zinc-800 rounded w-5/6" />
+          <div className="h-4 bg-zinc-100 dark:bg-zinc-800 rounded w-4/6" />
         </div>
       </div>
     );
@@ -576,7 +588,7 @@ const NoteEditor = () => {
   if (!currentNote && !isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
-        <div className="w-14 h-14 rounded-2xl bg-zinc-100 dark:bg-zinc-850 flex items-center justify-center text-2xl mb-4">
+        <div className="w-14 h-14 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-2xl mb-4">
           🔍
         </div>
         <h2 className="text-xl font-bold text-zinc-800 dark:text-zinc-200 mb-2">

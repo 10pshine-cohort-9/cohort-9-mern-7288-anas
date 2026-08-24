@@ -5,7 +5,7 @@ const Home = () => {
   const { status: isAuthenticated } = useSelector((state) => state.auth);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 selection:bg-indigo-500 selection:text-white flex flex-col font-sans">
+    <div className="relative isolate min-h-screen bg-zinc-950 text-zinc-100 selection:bg-indigo-500 selection:text-white flex flex-col font-sans">
       {/* Background Decorative Gradients */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-b from-indigo-600/15 via-purple-600/10 to-transparent blur-3xl opacity-70" />
@@ -105,7 +105,7 @@ const Home = () => {
 
             <Link
               to={isAuthenticated ? '/dashboard' : '/login'}
-              className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold rounded-xl text-zinc-300 bg-zinc-900/90 hover:bg-zinc-850 hover:text-white border border-zinc-800 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold rounded-xl text-zinc-300 bg-zinc-900/90 hover:bg-zinc-800 hover:text-white border border-zinc-800 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               {isAuthenticated ? 'View My Notes' : 'Log In'}
             </Link>
@@ -251,6 +251,55 @@ const Home = () => {
                 <h4 className="text-lg font-semibold text-white mb-2">Secure & Private</h4>
                 <p className="text-sm text-zinc-400 leading-relaxed">
                   Robust JWT authentication, secure session persistence, and scoped ownership keep your notes safe.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Security & Privacy Section */}
+        <section id="security" className="py-20 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
+          <div className="rounded-3xl border border-zinc-800/80 bg-zinc-900/50 p-8 sm:p-12 backdrop-blur-xl">
+            <div className="max-w-3xl mx-auto text-center mb-12">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-3">
+                Security & Privacy
+              </h2>
+              <h3 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
+                Built to protect your data at every layer
+              </h3>
+              <p className="mt-4 text-zinc-400 text-sm sm:text-base">
+                Your notes and media assets belong strictly to you. NotesFlow ensures end-to-end access control and zero data loss.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+              <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-950/80">
+                <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-xl mb-4">
+                  🔑
+                </div>
+                <h4 className="text-base font-semibold text-white mb-2">JWT Authentication</h4>
+                <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+                  Stateless token authentication with HTTP-only cookies and robust session validation.
+                </p>
+              </div>
+
+              <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-950/80">
+                <div className="w-10 h-10 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-xl mb-4">
+                  🛡️
+                </div>
+                <h4 className="text-base font-semibold text-white mb-2">User Scoped Access</h4>
+                <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+                  Strict database query boundaries ensure only authenticated owners can access or edit their notes.
+                </p>
+              </div>
+
+              <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-950/80">
+                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-xl mb-4">
+                  💾
+                </div>
+                <h4 className="text-base font-semibold text-white mb-2">Resilient Auto-Save</h4>
+                <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+                  Atomic revision control, debounced background saves, and unmount flushing protect against data loss.
                 </p>
               </div>
             </div>
