@@ -229,14 +229,19 @@ const notesSlice = createSlice({
           );
           const currentDispatched =
             state.latestDispatchedRevision[action.payload._id] || 0;
-          // Only update activeNote and list if fetched note is not older than latest dispatched revision
-          if (fetchedRev >= currentDispatched) {
-            state.latestDispatchedRevision[action.payload._id] = Math.max(
-              currentDispatched,
-              fetchedRev
-            );
+          state.latestDispatchedRevision[action.payload._id] = Math.max(
+            currentDispatched,
+            fetchedRev
+          );
+
+          const index = state.notes.findIndex((n) => n._id === action.payload._id);
+          const isMissingLocally =
+            index === -1 && state.activeNote?._id !== action.payload._id;
+
+          // Always adopt the note when it is absent locally. Otherwise keep
+          // newer local data that an in-flight save already advanced.
+          if (isMissingLocally || fetchedRev >= currentDispatched) {
             state.activeNote = action.payload;
-            const index = state.notes.findIndex((n) => n._id === action.payload._id);
             if (index === -1) {
               state.notes.push(action.payload);
             } else {

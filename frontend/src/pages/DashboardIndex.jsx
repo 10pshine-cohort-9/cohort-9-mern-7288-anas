@@ -29,7 +29,7 @@ const DashboardIndex = () => {
   return (
     <div className="min-h-full flex flex-col items-center justify-center p-6 md:p-12 max-w-3xl mx-auto text-center">
       {/* Notion-style Hero Icon */}
-      <div className="w-16 h-16 rounded-2xl bg-zinc-100 dark:bg-zinc-850 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center text-3xl mb-6 shadow-xs select-none">
+      <div className="w-16 h-16 rounded-2xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center text-3xl mb-6 shadow-xs select-none">
         ✍️
       </div>
 
