@@ -589,23 +589,23 @@ const NoteEditorForm = ({ note }) => {
         </div>
       )}
 
-      {/* Document Canvas */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto px-6 sm:px-12 md:px-16 pt-8 pb-32">
-          {/* Borderless Title Input */}
-          <div className="mb-4">
+      {/* Document Canvas (The Canvas: max-w-3xl mx-auto w-full pt-10 px-8) */}
+      <div className="flex-1 overflow-y-auto bg-white">
+        <div className="max-w-3xl mx-auto w-full pt-10 px-8 pb-32">
+          {/* Borderless Title Input: Massive tracking-tight H1 */}
+          <div className="mb-6">
             <input
               type="text"
               value={title}
               onChange={handleTitleChange}
-              placeholder="Untitled"
-              className="w-full bg-transparent text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 border-none outline-none focus:outline-none focus:ring-0 p-0 transition-colors"
+              placeholder="Untitled Note"
+              className="w-full bg-transparent text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 placeholder-slate-300 border-none outline-none focus:outline-none focus:ring-0 p-0 transition-colors"
               aria-label="Note title"
             />
           </div>
 
-          {/* Seamless React Quill Editor */}
-          <div className="notion-quill-wrapper">
+          {/* Minimal Rich Text Toolbar & Text Area */}
+          <div className="notion-quill-wrapper text-slate-700 text-lg leading-relaxed">
             <ReactQuill
               ref={quillRef}
               theme="snow"
@@ -613,7 +613,7 @@ const NoteEditorForm = ({ note }) => {
               onChange={handleContentChange}
               modules={modules}
               formats={quillFormats}
-              placeholder="Write your note here..."
+              placeholder="Start typing your note here..."
             />
           </div>
         </div>

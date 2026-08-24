@@ -80,81 +80,82 @@ const DashboardLayout = () => {
 
   const userInitial = displayName.charAt(0).toUpperCase();
 
+  const activeNote = notes.find((n) => n._id === noteId);
+  const currentTitle = activeNote?.title && activeNote.title.trim() !== '' 
+    ? activeNote.title 
+    : (noteId ? 'Untitled' : 'Workspace');
+
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans">
-      {/* Mobile Backdrop */}
+    <div className="flex h-screen w-screen overflow-hidden bg-white text-slate-900 font-sans selection:bg-indigo-500 selection:text-white">
+      {/* Mobile Sidebar Backdrop */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 z-20 bg-black/40 backdrop-blur-xs md:hidden"
+          className="fixed inset-0 z-20 bg-slate-900/30 backdrop-blur-xs md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
+      {/* 1. Left Sidebar (Expanded Width: w-80, bg-slate-50, border-r border-slate-200) */}
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-30 flex flex-col border-r border-zinc-200 dark:border-zinc-800 bg-[#f7f6f3] dark:bg-zinc-900 transition-all duration-200 ease-in-out ${
-          isSidebarOpen ? 'w-64 translate-x-0' : '-translate-x-full md:w-0 md:translate-x-0 md:border-none'
+        className={`fixed md:static inset-y-0 left-0 z-30 flex flex-col border-r border-slate-200 bg-slate-50 transition-all duration-200 ease-in-out shrink-0 ${
+          isSidebarOpen
+            ? 'w-80 translate-x-0'
+            : '-translate-x-full md:w-0 md:translate-x-0 md:border-none'
         }`}
       >
         {isSidebarOpen && (
-          <div className="flex flex-col h-full w-64">
-            {/* Top Workspace Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200/60 dark:border-zinc-800/60">
-              <div className="flex items-center space-x-2.5 min-w-0">
-                <div className="w-7 h-7 rounded-md bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                  {userInitial}
-                </div>
-                <div className="truncate">
-                  <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
-                    {displayName}&apos;s Notes
-                  </h2>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
-                    Personal Workspace
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsSidebarOpen(false)}
-                title="Collapse sidebar"
-                className="p-1 rounded-md text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                </svg>
-              </button>
-            </div>
+          <div className="flex flex-col h-full w-80">
+            {/* Header: NotesFlow Logo & Prominent Pill-shaped "New Note" Button */}
+            <div className="p-6 flex flex-col space-y-5 border-b border-slate-200/80">
+              <div className="flex items-center justify-between">
+                <NavLink to="/" className="flex items-center space-x-2 group">
+                  <span className="text-xl group-hover:scale-110 transition-transform">⚡</span>
+                  <span className="font-extrabold text-xl tracking-tight text-slate-900">
+                    NotesFlow
+                  </span>
+                </NavLink>
 
-            {/* Quick Action Button: New Note */}
-            <div className="px-3 pt-3 pb-2">
+                <button
+                  onClick={() => setIsSidebarOpen(false)}
+                  title="Collapse sidebar"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Prominent Deep Slate/Navy Pill-shaped "New Note" Button */}
               <button
                 onClick={handleCreateNote}
                 disabled={isCreating}
-                className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg text-zinc-700 dark:text-zinc-200 bg-white dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-750 hover:shadow-xs transition-all disabled:opacity-60 disabled:cursor-not-allowed group shadow-2xs"
+                className="w-full flex items-center justify-center space-x-2 py-2.5 px-4 bg-slate-900 text-white rounded-full font-semibold text-sm shadow-md shadow-slate-900/10 hover:bg-slate-800 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
-                <span className="flex items-center space-x-2">
-                  {isCreating ? (
-                    <svg className="animate-spin w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24">
+                {isCreating ? (
+                  <>
+                    <svg className="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                  ) : (
-                    <svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                    <span>Creating Note...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
                     </svg>
-                  )}
-                  <span>New Note</span>
-                </span>
-                <span className="text-[10px] text-zinc-400 border border-zinc-200 dark:border-zinc-700 rounded px-1.5 py-0.5">
-                  + Draft
-                </span>
+                    <span>New Note</span>
+                  </>
+                )}
               </button>
             </div>
 
-            {/* Search Input */}
-            <div className="px-3 pb-2">
-              <div className="relative">
+            {/* Search Input Box */}
+            <div className="px-6 pt-4 pb-2">
+              <div className="relative flex items-center">
                 <svg
-                  className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
+                  className="w-4 h-4 absolute left-3 text-slate-400 pointer-events-none"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -166,29 +167,29 @@ const DashboardLayout = () => {
                   placeholder="Search notes..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 text-xs rounded-md bg-zinc-200/50 dark:bg-zinc-800/60 border-none text-zinc-800 dark:text-zinc-200 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600"
+                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg bg-white border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 transition-all shadow-xs"
                 />
               </div>
             </div>
 
-            {/* Notes List Header */}
-            <div className="px-3 pt-2 pb-1 flex items-center justify-between text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-              <span>Notes</span>
-              <span className="bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-1.5 py-0.2 rounded text-[10px]">
+            {/* Notes List Section Title */}
+            <div className="px-6 pt-3 pb-1 flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              <span>All Notes</span>
+              <span className="bg-slate-200/70 text-slate-600 px-2 py-0.5 rounded-full text-[10px] font-semibold">
                 {filteredNotes.length}
               </span>
             </div>
 
             {/* Scrollable Notes List */}
-            <ul className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5 scrollbar-thin list-none m-0 p-0">
+            <ul className="flex-1 overflow-y-auto px-4 py-2 space-y-1 list-none m-0 scrollbar-thin">
               {isLoading && notes.length === 0 ? (
                 <li className="list-none space-y-2 p-2">
-                  <div className="h-7 bg-zinc-200/70 dark:bg-zinc-800 rounded animate-pulse" />
-                  <div className="h-7 bg-zinc-200/70 dark:bg-zinc-800 rounded animate-pulse" />
-                  <div className="h-7 bg-zinc-200/70 dark:bg-zinc-800 rounded animate-pulse" />
+                  <div className="h-9 bg-slate-200/60 rounded-lg animate-pulse" />
+                  <div className="h-9 bg-slate-200/60 rounded-lg animate-pulse" />
+                  <div className="h-9 bg-slate-200/60 rounded-lg animate-pulse" />
                 </li>
               ) : filteredNotes.length === 0 ? (
-                <li className="list-none px-3 py-6 text-center text-xs text-zinc-400 dark:text-zinc-500">
+                <li className="list-none px-4 py-8 text-center text-xs text-slate-400 font-medium">
                   {searchQuery ? 'No notes match your search.' : 'No notes yet. Click "+ New Note" to start!'}
                 </li>
               ) : (
@@ -199,24 +200,23 @@ const DashboardLayout = () => {
                   return (
                     <li
                       key={note._id}
-                      className={`group relative flex items-center justify-between rounded-md text-xs transition-all ${
+                      className={`group relative flex items-center justify-between rounded-lg text-sm transition-colors cursor-pointer ${
                         isActive
-                          ? 'bg-zinc-200/90 dark:bg-zinc-800 font-medium text-zinc-900 dark:text-zinc-100 shadow-2xs'
-                          : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-200'
+                          ? 'bg-indigo-50 text-slate-900 font-semibold px-3 py-2'
+                          : 'text-slate-600 hover:bg-slate-200/50 rounded-lg px-3 py-2'
                       }`}
                     >
                       <NavLink
                         to={`/dashboard/${note._id}`}
-                        className="flex items-center space-x-2 min-w-0 flex-1 px-2.5 py-1.5 pr-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 rounded-l-md"
+                        className="flex items-center space-x-2.5 min-w-0 flex-1 py-0.5 focus:outline-none"
                       >
                         <svg
-                          className={`w-3.5 h-3.5 shrink-0 ${
-                            isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-400'
+                          className={`w-4 h-4 shrink-0 ${
+                            isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'
                           }`}
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
-                          aria-hidden="true"
                         >
                           <path
                             strokeLinecap="round"
@@ -228,15 +228,15 @@ const DashboardLayout = () => {
                         <span className="truncate">{noteTitle}</span>
                       </NavLink>
 
-                      {/* Sibling Delete Action Button */}
+                      {/* Delete Action Button */}
                       <button
                         type="button"
                         onClick={(e) => handleDeleteNote(e, note._id)}
                         aria-label={`Delete note: ${noteTitle}`}
                         title={`Delete note: ${noteTitle}`}
-                        className="mr-1.5 p-1 rounded opacity-100 sm:opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-all cursor-pointer"
+                        className="ml-2 p-1 rounded-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-100 text-slate-400 hover:text-red-600 transition-all cursor-pointer"
                       >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -251,18 +251,21 @@ const DashboardLayout = () => {
               )}
             </ul>
 
-            {/* Bottom User Profile and Logout */}
-            <div className="p-3 border-t border-zinc-200/60 dark:border-zinc-800/60 bg-zinc-100/60 dark:bg-zinc-900/60">
+            {/* Footer Profile Block & Upgrade Badge */}
+            <div className="p-4 border-t border-slate-200/80 bg-slate-100/60">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2 min-w-0 pr-2">
-                  <div className="w-7 h-7 rounded-full bg-zinc-300 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 flex items-center justify-center text-xs font-semibold shrink-0">
+                <div className="flex items-center space-x-3 min-w-0 pr-2">
+                  <div className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-xs">
                     {userInitial}
                   </div>
                   <div className="truncate">
-                    <p className="text-xs font-medium text-zinc-800 dark:text-zinc-200 truncate">
-                      {displayName}
-                    </p>
-                    <p className="text-[10px] text-zinc-400 truncate">
+                    <div className="flex items-center space-x-1.5">
+                      <p className="text-xs font-bold text-slate-900 truncate">
+                        {displayName}
+                      </p>
+                      
+                    </div>
+                    <p className="text-[11px] text-slate-500 truncate">
                       {userData?.email || ''}
                     </p>
                   </div>
@@ -272,7 +275,7 @@ const DashboardLayout = () => {
                   onClick={handleLogout}
                   disabled={isLoggingOut}
                   title="Sign out"
-                  className="p-1.5 rounded-md text-zinc-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-800 transition-colors"
+                  className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -289,52 +292,39 @@ const DashboardLayout = () => {
         )}
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-white dark:bg-zinc-950">
-        {/* Top Minimal Navigation Bar */}
-        <header className="h-12 border-b border-zinc-100 dark:border-zinc-800/80 px-4 flex items-center justify-between shrink-0">
+      {/* 2. Main Editor Canvas Area */}
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-white">
+        {/* Top Navbar: Minimal, Padded (p-6), Breadcrumb & Share Button */}
+        <header className="p-6 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
           <div className="flex items-center space-x-3">
             {!isSidebarOpen && (
               <button
                 onClick={() => setIsSidebarOpen(true)}
                 title="Expand sidebar"
-                className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
             )}
-            <nav className="flex items-center space-x-1.5 text-xs text-zinc-400">
-              <NavLink to="/dashboard" className="hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors">
-                Dashboard
+            
+            {/* Breadcrumb Text */}
+            <nav className="flex items-center space-x-2 text-sm text-slate-400 font-medium">
+              <NavLink to="/dashboard" className="hover:text-slate-700 transition-colors">
+                Workspace
               </NavLink>
-              {noteId && (
-                <>
-                  <span>/</span>
-                  <span className="text-zinc-800 dark:text-zinc-200 font-medium truncate max-w-[200px]">
-                    {notes.find((n) => n._id === noteId)?.title || 'Note Editor'}
-                  </span>
-                </>
-              )}
+              <span>/</span>
+              <span className="text-slate-900 font-semibold truncate max-w-[240px]">
+                {currentTitle}
+              </span>
             </nav>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={handleCreateNote}
-              disabled={isCreating}
-              className="flex items-center space-x-1 px-2.5 py-1 text-xs font-medium rounded-md text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-              </svg>
-              <span>New</span>
-            </button>
-          </div>
+          
         </header>
 
-        {/* Dynamic Nested Content via Outlet */}
+        {/* Dynamic Nested Content via Outlet (DashboardIndex or NoteEditor) */}
         <div className="flex-1 overflow-y-auto">
           <Outlet />
         </div>
