@@ -5,357 +5,411 @@ const Home = () => {
   const { status: isAuthenticated } = useSelector((state) => state.auth);
 
   return (
-    <div className="relative isolate min-h-screen bg-zinc-950 text-zinc-100 selection:bg-indigo-500 selection:text-white flex flex-col font-sans">
-      {/* Background Decorative Gradients */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-b from-indigo-600/15 via-purple-600/10 to-transparent blur-3xl opacity-70" />
-        <div className="absolute top-1/3 -left-48 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
-        <div className="absolute top-2/3 -right-48 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl" />
-      </div>
+    <div className="relative isolate min-h-screen bg-[#F9FAFB] text-slate-900 selection:bg-indigo-500 selection:text-white flex flex-col font-sans overflow-x-hidden">
+      
+      {/* 1. Navigation Bar (Liquid Glass Capsule) */}
+      <header className="sticky top-4 z-50 max-w-6xl mx-auto px-4 sm:px-6 w-full">
+        <div className="relative bg-white/40 backdrop-blur-2xl border border-white/80 shadow-[0_8px_32px_0_rgba(31,38,135,0.08)] rounded-full px-6 py-2.5 flex items-center justify-between transition-all hover:bg-white/55">
+          {/* Liquid Glass Top Sheen Line */}
+          <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white to-transparent pointer-events-none" />
 
-      {/* Navigation Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-zinc-950/80 border-b border-zinc-800/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center space-x-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white font-bold text-lg shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-              ⚡
-            </div>
-            <span className="font-bold text-lg tracking-tight text-white group-hover:text-indigo-300 transition-colors">
+          {/* Left: Logo */}
+          <Link to="/" className="flex items-center space-x-2 group relative z-10">
+            <span className="text-xl group-hover:scale-110 transition-transform">⚡</span>
+            <span className="font-bold text-xl tracking-tight text-[#1E1B4B]">
               NotesFlow
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center space-x-8 text-sm font-medium text-zinc-400">
-            <a href="#features" className="hover:text-zinc-100 transition-colors">
+          {/* Center: Links */}
+          <nav className="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-600 relative z-10">
+            <a href="#features" className="hover:text-[#1E1B4B] transition-colors">
               Features
             </a>
-            <a href="#preview" className="hover:text-zinc-100 transition-colors">
-              Workspace
-            </a>
-            <a href="#security" className="hover:text-zinc-100 transition-colors">
-              Security
+            
+            <a href="#pricing" className="hover:text-[#1E1B4B] transition-colors">
+              Pricing
             </a>
           </nav>
 
-          <div className="flex items-center space-x-3">
-            {isAuthenticated ? (
-              <Link
-                to="/dashboard"
-                className="inline-flex items-center space-x-2 px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <span>Go to Dashboard</span>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </Link>
-            ) : (
-              <>
-                <Link
-                  to="/login"
-                  className="px-3.5 py-2 text-sm font-medium text-zinc-300 hover:text-white transition-colors"
-                >
-                  Log In
-                </Link>
-                <Link
-                  to="/register"
-                  className="px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  Get Started Free
-                </Link>
-              </>
-            )}
+          {/* Right: Dark Pill Button */}
+          <div className="flex items-center space-x-3 relative z-10">
+            <Link
+              to={isAuthenticated ? '/dashboard' : '/login'}
+              className="px-5 py-2 text-xs font-semibold rounded-full bg-[#1E1B4B] hover:bg-[#2D2A6E] text-white shadow-md shadow-indigo-950/20 transition-all hover:scale-[1.02]"
+            >
+              Go to Dashboard
+            </Link>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="flex-1">
-        {/* Hero Section */}
-        <section className="relative pt-16 pb-20 md:pt-24 md:pb-32 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center">
-          {/* Release Badge */}
-          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 text-xs font-medium mb-8 backdrop-blur-sm shadow-inner">
-            <span className="flex h-2 w-2 rounded-full bg-indigo-400 animate-pulse" />
-            <span>Notion-style Editor • Powered by React & Cloudinary</span>
-          </div>
-
-          {/* Main Headline */}
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.1] max-w-4xl mx-auto">
-            Your Mind, Organized.{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-violet-300 to-purple-400">
-              Capture ideas at the speed of thought.
-            </span>
-          </h1>
-
-          {/* Subheadline */}
-          <p className="mt-6 text-base sm:text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto leading-relaxed">
-            Experience a seamless, distraction-free workspace. Write rich text with effortless formatting, upload inline images to the cloud, and enjoy real-time auto-saving.
-          </p>
-
-          {/* Call to Action Buttons */}
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to={isAuthenticated ? '/dashboard' : '/register'}
-              className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-8 py-3.5 text-base font-semibold rounded-xl text-white bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <span>{isAuthenticated ? 'Open Dashboard' : "Get Started - It's Free"}</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
-            </Link>
-
-            <Link
-              to={isAuthenticated ? '/dashboard' : '/login'}
-              className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold rounded-xl text-zinc-300 bg-zinc-900/90 hover:bg-zinc-800 hover:text-white border border-zinc-800 transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              {isAuthenticated ? 'View My Notes' : 'Log In'}
-            </Link>
-          </div>
-
-          {/* Micro-Features Row */}
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-y-3 gap-x-8 text-xs text-zinc-400">
-            <div className="flex items-center space-x-1.5">
-              <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <span>Instant Auto-Save</span>
-            </div>
-            <div className="flex items-center space-x-1.5">
-              <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <span>Cloudinary Cloud Media</span>
-            </div>
-            <div className="flex items-center space-x-1.5">
-              <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <span>JWT Authentication</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Product Workspace Mockup */}
-        <section id="preview" className="px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto pb-24">
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-2 sm:p-3 shadow-2xl backdrop-blur-xl shadow-indigo-950/20">
-            <div className="rounded-xl border border-zinc-800/80 bg-zinc-950 overflow-hidden">
-              {/* Window Header */}
-              <div className="flex items-center justify-between px-4 py-3 bg-zinc-900/90 border-b border-zinc-800/80">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                  <span className="ml-3 text-xs font-mono text-zinc-500">notesflow.app/dashboard</span>
-                </div>
-                <div className="flex items-center space-x-2 text-xs text-zinc-400">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>Saved</span>
-                </div>
-              </div>
-
-              {/* Editor Workspace Demo UI */}
-              <div className="p-6 sm:p-10 text-left">
-                {/* Simulated Note Header */}
-                <div className="text-2xl sm:text-4xl font-bold tracking-tight text-white mb-6">
-                  🚀 Launch Roadmap & Product Architecture
-                </div>
-
-                {/* Simulated Content */}
-                <div className="space-y-4 text-sm sm:text-base text-zinc-300 leading-relaxed font-normal">
-                  <p>
-                    Building high-performance note systems requires resilient client-server synchronization, instant search, and seamless media ingestion.
-                  </p>
-
-                  {/* Highlights Box */}
-                  <div className="p-4 rounded-xl bg-indigo-950/30 border border-indigo-500/20 text-indigo-200">
-                    <span className="font-semibold text-indigo-400">Key Objective:</span> Empower creators to organize thoughts without UI friction, latency, or data loss.
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                    <div className="p-3.5 rounded-lg border border-zinc-800 bg-zinc-900/60 flex items-start space-x-3">
-                      <span className="text-lg">✨</span>
-                      <div>
-                        <div className="text-xs font-semibold text-white">Full-Text Quill Integration</div>
-                        <div className="text-xs text-zinc-400 mt-0.5">Rich headers, lists, code syntax, and inline embeds.</div>
-                      </div>
-                    </div>
-
-                    <div className="p-3.5 rounded-lg border border-zinc-800 bg-zinc-900/60 flex items-start space-x-3">
-                      <span className="text-lg">☁️</span>
-                      <div>
-                        <div className="text-xs font-semibold text-white">Automatic Asset Garbage Collection</div>
-                        <div className="text-xs text-zinc-400 mt-0.5">Cloudinary deletes orphaned images on backspace.</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Features Showcase Section */}
-        <section id="features" className="py-20 bg-zinc-900/40 border-y border-zinc-800/80 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center max-w-3xl mx-auto mb-16">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-3">
-                Engineered for Productivity
-              </h2>
-              <h3 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
-                Everything you need to capture and organize thoughts
-              </h3>
-              <p className="mt-4 text-zinc-400 text-sm sm:text-base">
-                Modern tools shouldn’t get in your way. NotesFlow combines simplicity with powerful MERN architecture.
-              </p>
+        {/* 2. Hero Section (Asymmetrical Split Layout) */}
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 max-w-7xl mx-auto px-6 pt-12 md:pt-16 pb-20 items-start relative">
+          
+          {/* Left Column (Hero Text & Floating App Mockup - span 7 columns) */}
+          <div className="lg:col-span-7 flex flex-col text-left">
+            {/* Outline Badge */}
+            <div>
+              <span className="bg-slate-100/90 border border-slate-200/80 text-slate-600 text-xs font-medium px-4 py-1.5 rounded-full inline-block mb-6 shadow-sm">
+                • Notes Editor • Powered by React & Cloudinary
+              </span>
             </div>
 
-            {/* Feature Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Feature 1 */}
-              <div className="p-6 rounded-2xl border border-zinc-800/80 bg-zinc-950/60 hover:border-indigo-500/40 hover:bg-zinc-900/40 transition-all group">
-                <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-2xl mb-5 group-hover:scale-110 transition-transform">
-                  ✍️
-                </div>
-                <h4 className="text-lg font-semibold text-white mb-2">Rich Text Editing</h4>
-                <p className="text-sm text-zinc-400 leading-relaxed">
-                  Notion-style interface powered by React Quill. Headers, bullet lists, code syntax, quotes, and clean formatting.
-                </p>
-              </div>
+            {/* Headline */}
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-[#1E1B4B] leading-[1.1] max-w-2xl">
+              Your Mind, Organized.{' '}
+              <br className="hidden sm:inline" />
+              Capture ideas at the speed of{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">
+                thought.
+              </span>
+            </h1>
 
-              {/* Feature 2 */}
-              <div className="p-6 rounded-2xl border border-zinc-800/80 bg-zinc-950/60 hover:border-indigo-500/40 hover:bg-zinc-900/40 transition-all group">
-                <div className="w-12 h-12 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-2xl mb-5 group-hover:scale-110 transition-transform">
-                  ☁️
-                </div>
-                <h4 className="text-lg font-semibold text-white mb-2">Cloud Integration</h4>
-                <p className="text-sm text-zinc-400 leading-relaxed">
-                  Seamless inline image uploads powered by Cloudinary with automatic cleanup when images are removed.
-                </p>
-              </div>
-
-              {/* Feature 3 */}
-              <div className="p-6 rounded-2xl border border-zinc-800/80 bg-zinc-950/60 hover:border-indigo-500/40 hover:bg-zinc-900/40 transition-all group">
-                <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-2xl mb-5 group-hover:scale-110 transition-transform">
-                  ⚡
-                </div>
-                <h4 className="text-lg font-semibold text-white mb-2">Smart Auto-Save</h4>
-                <p className="text-sm text-zinc-400 leading-relaxed">
-                  Never lose a thought. Debounced background auto-save and atomic revision tracking protect your work in real-time.
-                </p>
-              </div>
-
-              {/* Feature 4 */}
-              <div className="p-6 rounded-2xl border border-zinc-800/80 bg-zinc-950/60 hover:border-indigo-500/40 hover:bg-zinc-900/40 transition-all group">
-                <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-2xl mb-5 group-hover:scale-110 transition-transform">
-                  🔒
-                </div>
-                <h4 className="text-lg font-semibold text-white mb-2">Secure & Private</h4>
-                <p className="text-sm text-zinc-400 leading-relaxed">
-                  Robust JWT authentication, secure session persistence, and scoped ownership keep your notes safe.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Security & Privacy Section */}
-        <section id="security" className="py-20 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
-          <div className="rounded-3xl border border-zinc-800/80 bg-zinc-900/50 p-8 sm:p-12 backdrop-blur-xl">
-            <div className="max-w-3xl mx-auto text-center mb-12">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-3">
-                Security & Privacy
-              </h2>
-              <h3 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
-                Built to protect your data at every layer
-              </h3>
-              <p className="mt-4 text-zinc-400 text-sm sm:text-base">
-                Your notes and media assets belong strictly to you. NotesFlow ensures end-to-end access control and zero data loss.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-              <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-950/80">
-                <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-xl mb-4">
-                  🔑
-                </div>
-                <h4 className="text-base font-semibold text-white mb-2">JWT Authentication</h4>
-                <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-                  Stateless token authentication with HTTP-only cookies and robust session validation.
-                </p>
-              </div>
-
-              <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-950/80">
-                <div className="w-10 h-10 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-xl mb-4">
-                  🛡️
-                </div>
-                <h4 className="text-base font-semibold text-white mb-2">User Scoped Access</h4>
-                <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-                  Strict database query boundaries ensure only authenticated owners can access or edit their notes.
-                </p>
-              </div>
-
-              <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-950/80">
-                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-xl mb-4">
-                  💾
-                </div>
-                <h4 className="text-base font-semibold text-white mb-2">Resilient Auto-Save</h4>
-                <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-                  Atomic revision control, debounced background saves, and unmount flushing protect against data loss.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Call to Action Banner */}
-        <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
-          <div className="relative rounded-3xl overflow-hidden p-8 sm:p-14 border border-indigo-500/30 bg-gradient-to-b from-indigo-950/50 to-zinc-900/90 shadow-2xl">
-            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 pointer-events-none" />
-            
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white relative z-10">
-              Ready to supercharge your notes?
-            </h2>
-            <p className="mt-4 text-base sm:text-lg text-zinc-400 max-w-xl mx-auto relative z-10">
-              Join today and enjoy a clean, fast, and secure workspace for all your ideas and projects.
+            {/* Subtitle */}
+            <p className="mt-5 text-slate-500 text-base sm:text-lg max-w-xl leading-relaxed font-normal">
+              Experience a seamless, distraction-free workspace. Write rich text with effortless formatting, upload inline images to the cloud, and enjoy real-time auto-saving.
             </p>
 
-            <div className="mt-8 flex justify-center relative z-10">
+            {/* CTAs */}
+            <div className="flex flex-wrap items-center gap-4 mt-8">
               <Link
                 to={isAuthenticated ? '/dashboard' : '/register'}
-                className="inline-flex items-center space-x-2 px-8 py-4 text-base font-semibold rounded-xl text-white bg-indigo-600 hover:bg-indigo-500 shadow-xl shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="bg-[#1E1B4B] hover:bg-[#2D2A6E] text-white rounded-full px-7 py-3 text-sm font-semibold shadow-lg shadow-indigo-950/20 transition-all hover:scale-[1.02] inline-flex items-center space-x-2"
               >
-                <span>{isAuthenticated ? 'Go to My Dashboard' : 'Get Started for Free'}</span>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
+                <span>{isAuthenticated ? 'Open Dashboard' : 'Open Dashboard'}</span>
+                <span>&rarr;</span>
+              </Link>
+
+              <Link
+                to={isAuthenticated ? '/dashboard' : '/login'}
+                className="bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 rounded-full px-7 py-3 text-sm font-semibold shadow-sm transition-all hover:scale-[1.02]"
+              >
+                {isAuthenticated ? 'View My Notes' : 'View My Notes'}
               </Link>
             </div>
+
+            {/* Checkmarks Row */}
+            <div className="flex flex-wrap items-center gap-5 mt-6 text-xs font-medium text-slate-600">
+              <div className="flex items-center space-x-1.5">
+                <span className="w-4 h-4 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-[10px]">
+                  ✓
+                </span>
+                <span>Instant Auto-Save</span>
+              </div>
+              <div className="flex items-center space-x-1.5">
+                <span className="w-4 h-4 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-[10px]">
+                  ✓
+                </span>
+                <span>Cloudinary Cloud Media</span>
+              </div>
+              <div className="flex items-center space-x-1.5">
+                <span className="w-4 h-4 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-[10px]">
+                  ✓
+                </span>
+                <span>JWT Authentication</span>
+              </div>
+            </div>
+
+            
+          </div>
+
+          {/* Right Column (Feature Grid - 2x3 cards - span 5 columns) */}
+          <div id="features" className="lg:col-span-5 relative mt-12 lg:mt-0">
+            {/* Massive Blurred Blue/Purple Orb behind Grid */}
+            <div className="absolute -inset-10 bg-gradient-to-br from-blue-400/40 via-indigo-400/35 to-purple-500/40 blur-[100px] rounded-full pointer-events-none -z-10" />
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Card 1 */}
+              <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-5 border border-slate-100 shadow-xl shadow-slate-200/50 hover:shadow-2xl transition-all text-left flex flex-col justify-between">
+                <div>
+                  <div className="w-9 h-9 rounded-xl bg-pink-100/70 flex items-center justify-center text-base mb-3">
+                    🚀
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-900 mb-1">
+                    Rich Text Editing
+                  </h4>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Notion-style interface powered by React Quill. Headers, bullet lists, code syntax, quotes, and clean formatting.
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 2 */}
+              <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-5 border border-slate-100 shadow-xl shadow-slate-200/50 hover:shadow-2xl transition-all text-left flex flex-col justify-between">
+                <div>
+                  <div className="w-9 h-9 rounded-xl bg-blue-100/70 flex items-center justify-center text-base mb-3">
+                    ☁️
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-900 mb-1">
+                    Cloud Integration
+                  </h4>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Seamless inline image uploads powered by Cloudinary with automatic cleanup when images are removed.
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 3 */}
+              <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-5 border border-slate-100 shadow-xl shadow-slate-200/50 hover:shadow-2xl transition-all text-left flex flex-col justify-between">
+                <div>
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100/70 flex items-center justify-center text-base mb-3">
+                    ⚡
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-900 mb-1">
+                    Smart Auto-Save
+                  </h4>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Never lose a thought. Debounced background auto-save and atomic revision tracking protect your work in real-time.
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 4 */}
+              <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-5 border border-slate-100 shadow-xl shadow-slate-200/50 hover:shadow-2xl transition-all text-left flex flex-col justify-between">
+                <div>
+                  <div className="w-9 h-9 rounded-xl bg-rose-100/70 flex items-center justify-center text-base mb-3">
+                    🔒
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-900 mb-1">
+                    Secure & Private
+                  </h4>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Robust JWT authentication, secure session persistence, and scoped ownership keep your notes safe.
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 5 */}
+              <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-5 border border-slate-100 shadow-xl shadow-slate-200/50 hover:shadow-2xl transition-all text-left flex flex-col justify-between">
+                <div>
+                  <div className="w-9 h-9 rounded-xl bg-sky-100/70 flex items-center justify-center text-base mb-3">
+                    🛡️
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-900 mb-1">
+                    User Scoped Access
+                  </h4>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Strict database query boundaries ensure only authenticated owners can access or edit their notes.
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 6 */}
+              <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-5 border border-slate-100 shadow-xl shadow-slate-200/50 hover:shadow-2xl transition-all text-left flex flex-col justify-between">
+                <div>
+                  <div className="w-9 h-9 rounded-xl bg-purple-100/70 flex items-center justify-center text-base mb-3">
+                    🔮
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-900 mb-1">
+                    Resilient Auto-Save
+                  </h4>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Atomic revision control, debounced background saves, and unmount flushing protect against data loss.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Security Section (Internal Anchor Target) */}
+        <section id="security" className="sr-only">
+          Security Section Anchor
+        </section>
+
+        {/* 3. Pricing Section */}
+        <section id="pricing" className="mt-20 max-w-6xl mx-auto px-6">
+          <div className="text-center max-w-2xl mx-auto">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#1E1B4B] tracking-tight">
+              Simple, transparent pricing
+            </h2>
+            <p className="mt-2 text-xs sm:text-sm text-slate-500">
+              Choose the perfect plan for your personal knowledge management and team collaboration.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12 items-stretch">
+            {/* Card 1 (Free) */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-8 shadow-lg shadow-slate-200/50 flex flex-col justify-between hover:border-slate-300 transition-colors text-left">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Starter</h3>
+                <p className="text-xs text-slate-500 mt-1">Perfect for individuals getting started</p>
+                <div className="mt-6 flex items-baseline">
+                  <span className="text-3xl font-extrabold text-slate-900">$0</span>
+                  <span className="text-slate-500 text-xs ml-1">/mo</span>
+                </div>
+
+                <ul className="mt-6 space-y-3 text-xs text-slate-600">
+                  <li className="flex items-center space-x-2">
+                    <span className="text-emerald-500 font-bold">✓</span>
+                    <span>Up to 50 active notes</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <span className="text-emerald-500 font-bold">✓</span>
+                    <span>React Quill rich editor</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <span className="text-emerald-500 font-bold">✓</span>
+                    <span>Basic Cloudinary storage</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <span className="text-emerald-500 font-bold">✓</span>
+                    <span>Standard auto-save</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="mt-8">
+                <Link
+                  to={isAuthenticated ? '/dashboard' : '/register'}
+                  className="block w-full py-2.5 px-4 rounded-full border border-slate-200/80 text-slate-700 font-semibold hover:bg-slate-50 transition-colors text-center text-xs"
+                >
+                  Get Started Free
+                </Link>
+              </div>
+            </div>
+
+            {/* Card 2 (Pro Creator - Highlighted) */}
+            <div className="bg-[#1E1B4B] text-white rounded-2xl p-8 shadow-2xl shadow-indigo-950/30 flex flex-col justify-between relative md:-translate-y-4 border border-slate-800 text-left">
+              <div>
+                <span className="bg-indigo-500 text-white text-[10px] font-semibold px-3 py-1 rounded-full uppercase tracking-wider inline-block mb-3">
+                  Most Popular
+                </span>
+                <h3 className="text-base font-bold text-white">Pro Creator</h3>
+                <p className="text-xs text-slate-400 mt-1">For power users and serious note-takers</p>
+                <div className="mt-6 flex items-baseline">
+                  <span className="text-3xl font-extrabold text-white">$8</span>
+                  <span className="text-slate-400 text-xs ml-1">/mo</span>
+                </div>
+
+                <ul className="mt-6 space-y-3 text-xs text-slate-300">
+                  <li className="flex items-center space-x-2">
+                    <span className="text-indigo-400 font-bold">✓</span>
+                    <span>Unlimited active notes</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <span className="text-indigo-400 font-bold">✓</span>
+                    <span>Stripe subscription integration</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <span className="text-indigo-400 font-bold">✓</span>
+                    <span>Unlimited Cloudinary media</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <span className="text-indigo-400 font-bold">✓</span>
+                    <span>Revision history & atomic saves</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <span className="text-indigo-400 font-bold">✓</span>
+                    <span>Priority customer support</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="mt-8">
+                <Link
+                  to={isAuthenticated ? '/dashboard' : '/register'}
+                  className="block w-full py-2.5 px-4 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/30 transition-all text-center text-xs"
+                >
+                  Upgrade to Pro
+                </Link>
+              </div>
+            </div>
+
+            {/* Card 3 (Team Workspace) */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-8 shadow-lg shadow-slate-200/50 flex flex-col justify-between hover:border-slate-300 transition-colors text-left">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Team Workspace</h3>
+                <p className="text-xs text-slate-500 mt-1">For organizations and collaborative teams</p>
+                <div className="mt-6 flex items-baseline">
+                  <span className="text-3xl font-extrabold text-slate-900">$24</span>
+                  <span className="text-slate-500 text-xs ml-1">/mo</span>
+                </div>
+
+                <ul className="mt-6 space-y-3 text-xs text-slate-600">
+                  <li className="flex items-center space-x-2">
+                    <span className="text-emerald-500 font-bold">✓</span>
+                    <span>Everything in Pro plan</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <span className="text-emerald-500 font-bold">✓</span>
+                    <span>Shared team workspaces</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <span className="text-emerald-500 font-bold">✓</span>
+                    <span>Granular role permissions</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <span className="text-emerald-500 font-bold">✓</span>
+                    <span>Dedicated account manager</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="mt-8">
+                <Link
+                  to={isAuthenticated ? '/dashboard' : '/register'}
+                  className="block w-full py-2.5 px-4 rounded-full border border-slate-200/80 text-slate-700 font-semibold hover:bg-slate-50 transition-colors text-center text-xs"
+                >
+                  Contact Sales
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 4. Bottom CTA Banner */}
+        <section className="max-w-4xl mx-auto bg-white border border-slate-200/80 rounded-3xl shadow-xl shadow-slate-200/50 p-10 mt-20 mb-20 text-center relative overflow-hidden px-6">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-indigo-500/5 to-purple-500/5 pointer-events-none" />
+          
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#1E1B4B] tracking-tight relative z-10">
+            Ready to supercharge your notes?
+          </h2>
+          <p className="mt-2 text-xs sm:text-sm text-slate-500 max-w-xl mx-auto relative z-10">
+            Join today and enjoy a clean, fast, and secure workspace for all your ideas and projects.
+          </p>
+
+          <div className="mt-6 flex justify-center relative z-10">
+            <Link
+              to={isAuthenticated ? '/dashboard' : '/register'}
+              className="inline-flex items-center space-x-2 px-7 py-3 rounded-full bg-[#1E1B4B] hover:bg-[#2D2A6E] text-white text-xs font-semibold shadow-lg shadow-indigo-950/20 transition-all hover:scale-[1.02]"
+            >
+              <span>{isAuthenticated ? 'Go to My Dashboard' : 'Go to My Dashboard'}</span>
+              <span>&rarr;</span>
+            </Link>
           </div>
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-zinc-800/80 bg-zinc-950 py-10 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
-          <div className="flex items-center space-x-2">
-            <span className="font-semibold text-zinc-300">NotesFlow</span>
-            <span>•</span>
-            <span>MERN Stack Notion Clone</span>
-          </div>
+      {/* 5. Footer */}
+      <footer className="border-t border-slate-200/80 py-8 px-6">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-medium">
+          <Link to="/" className="flex items-center space-x-1.5">
+            <span className="text-base">⚡</span>
+            <span className="font-bold text-[#1E1B4B] text-sm">NotesFlow</span>
+          </Link>
 
           <div className="flex items-center space-x-6">
-            <Link to="/login" className="hover:text-zinc-300 transition-colors">
+            <a href="#features" className="hover:text-slate-900 transition-colors">
+              Features
+            </a>
+            
+            <a href="#pricing" className="hover:text-slate-900 transition-colors">
+              Pricing
+            </a>
+            <Link to="/login" className="hover:text-slate-900 transition-colors">
               Log In
             </Link>
-            <Link to="/register" className="hover:text-zinc-300 transition-colors">
+            <Link to="/register" className="hover:text-slate-900 transition-colors">
               Register
-            </Link>
-            <Link to="/dashboard" className="hover:text-zinc-300 transition-colors">
-              Dashboard
             </Link>
           </div>
 
           <div>
-            &copy; {new Date().getFullYear()} NotesFlow. All rights reserved.
+            &copy; 2026 NotesFlow. All rights reserved.
           </div>
         </div>
       </footer>
