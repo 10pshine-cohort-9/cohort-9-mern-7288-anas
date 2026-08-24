@@ -1,98 +1,132 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
-import axiosInstance from '../utils/axiosInstance.js';
+import { useDispatch, useSelector } from 'react-redux';
+import { register, clearError } from '../store/authSlice.js';
 import logger from '../utils/logger.js';
 
 const Register = () => {
-  const [serverError, setServerError] = useState('');
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { error, isLoading } = useSelector((state) => state.auth);
 
   const {
-    register,
+    register: registerField,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm({
     defaultValues: {
-      fullName: '',
+      username: '',
       email: '',
       password: '',
     },
+    mode: 'onTouched',
   });
 
-  const onSubmit = async (data) => {
-    setServerError('');
-    try {
-      const payload = {
-        fullName: data.fullName,
-        username: data.fullName,
-        email: data.email,
-        password: data.password,
-      };
+  // Clear any existing auth errors when the component mounts or unmounts (route switch)
+  useEffect(() => {
+    dispatch(clearError());
+    return () => {
+      dispatch(clearError());
+    };
+  }, [dispatch]);
 
-      const response = await axiosInstance.post('/users/register', payload);
-      logger.info({ res: response.data }, 'User registered successfully');
+  // Clear error when the user starts typing in any field
+  const handleInputChange = () => {
+    if (error) {
+      dispatch(clearError());
+    }
+  };
+
+  const onSubmit = async (data) => {
+    try {
+      await dispatch(
+        register({
+          username: data.username.trim(),
+          email: data.email.trim(),
+          password: data.password,
+        })
+      ).unwrap();
+
+      logger.info('User registered successfully');
       navigate('/login');
-    } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || error.message || 'Registration failed. Please try again.';
-      setServerError(errorMessage);
-      logger.error({ err: error }, 'Registration error');
+    } catch (err) {
+      logger.error({ err }, 'Registration error');
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 py-12">
-      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-100 dark:border-gray-700">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950 px-4 py-12">
+      <div className="max-w-md w-full bg-white dark:bg-zinc-900 rounded-2xl shadow-xl p-8 border border-gray-100 dark:border-zinc-800">
         <div className="text-center mb-8">
+          <Link to="/" className="inline-flex items-center justify-center space-x-2 mb-4 group">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white font-bold text-xl shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
+              ⚡
+            </div>
+          </Link>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Create Account</h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Sign up to get started with your account
+          <p className="mt-2 text-sm text-gray-600 dark:text-zinc-400">
+            Sign up to start organizing your notes
           </p>
         </div>
 
-        {serverError && (
-          <div className="mb-6 p-4 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300">
-            {serverError}
+        {/* Dynamic backend error display from Redux state */}
+        {error && (
+          <div className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/80 text-sm text-red-700 dark:text-red-300 flex items-start space-x-2.5">
+            <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+          {/* Username Field */}
           <div>
             <label
-              htmlFor="fullName"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              htmlFor="username"
+              className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1.5"
             >
-              Full Name
+              Username
             </label>
             <input
-              id="fullName"
+              id="username"
               type="text"
-              placeholder="John Doe"
-              {...register('fullName', {
-                required: 'Full name is required',
+              placeholder="johndoe123"
+              {...registerField('username', {
+                required: 'Username is required',
                 minLength: {
-                  value: 2,
-                  message: 'Full name must be at least 2 characters',
+                  value: 3,
+                  message: 'Username must be at least 3 characters',
                 },
+                maxLength: {
+                  value: 20,
+                  message: 'Username cannot exceed 20 characters',
+                },
+                pattern: {
+                  value: /^[a-zA-Z0-9]+$/,
+                  message: 'Username must be alphanumeric (letters and numbers only)',
+                },
+                onChange: handleInputChange,
               })}
-              className={`w-full px-4 py-2.5 rounded-lg border text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition duration-150 focus:outline-none focus:ring-2 ${
-                errors.fullName
+              className={`w-full px-4 py-2.5 rounded-lg border text-gray-900 dark:text-white bg-white dark:bg-zinc-800 transition duration-150 focus:outline-none focus:ring-2 ${
+                errors.username
                   ? 'border-red-500 focus:ring-red-400'
-                  : 'border-gray-300 dark:border-gray-600 focus:ring-indigo-500 focus:border-transparent'
+                  : 'border-gray-300 dark:border-zinc-700 focus:ring-indigo-500 focus:border-transparent'
               }`}
             />
-            {errors.fullName && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                {errors.fullName.message}
+            {errors.username && (
+              <p className="mt-1.5 text-xs text-red-600 dark:text-red-400 font-medium">
+                {errors.username.message}
               </p>
             )}
           </div>
 
+          {/* Email Field */}
           <div>
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1.5"
             >
               Email Address
             </label>
@@ -100,28 +134,32 @@ const Register = () => {
               id="email"
               type="email"
               placeholder="you@example.com"
-              {...register('email', {
-                required: 'Email is required',
+              {...registerField('email', {
+                required: 'Email address is required',
                 pattern: {
                   value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
                   message: 'Please enter a valid email address',
                 },
+                onChange: handleInputChange,
               })}
-              className={`w-full px-4 py-2.5 rounded-lg border text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition duration-150 focus:outline-none focus:ring-2 ${
+              className={`w-full px-4 py-2.5 rounded-lg border text-gray-900 dark:text-white bg-white dark:bg-zinc-800 transition duration-150 focus:outline-none focus:ring-2 ${
                 errors.email
                   ? 'border-red-500 focus:ring-red-400'
-                  : 'border-gray-300 dark:border-gray-600 focus:ring-indigo-500 focus:border-transparent'
+                  : 'border-gray-300 dark:border-zinc-700 focus:ring-indigo-500 focus:border-transparent'
               }`}
             />
             {errors.email && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email.message}</p>
+              <p className="mt-1.5 text-xs text-red-600 dark:text-red-400 font-medium">
+                {errors.email.message}
+              </p>
             )}
           </div>
 
+          {/* Password Field */}
           <div>
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1.5"
             >
               Password
             </label>
@@ -129,21 +167,22 @@ const Register = () => {
               id="password"
               type="password"
               placeholder="••••••••"
-              {...register('password', {
+              {...registerField('password', {
                 required: 'Password is required',
                 minLength: {
                   value: 6,
                   message: 'Password must be at least 6 characters',
                 },
+                onChange: handleInputChange,
               })}
-              className={`w-full px-4 py-2.5 rounded-lg border text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition duration-150 focus:outline-none focus:ring-2 ${
+              className={`w-full px-4 py-2.5 rounded-lg border text-gray-900 dark:text-white bg-white dark:bg-zinc-800 transition duration-150 focus:outline-none focus:ring-2 ${
                 errors.password
                   ? 'border-red-500 focus:ring-red-400'
-                  : 'border-gray-300 dark:border-gray-600 focus:ring-indigo-500 focus:border-transparent'
+                  : 'border-gray-300 dark:border-zinc-700 focus:ring-indigo-500 focus:border-transparent'
               }`}
             />
             {errors.password && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+              <p className="mt-1.5 text-xs text-red-600 dark:text-red-400 font-medium">
                 {errors.password.message}
               </p>
             )}
@@ -151,10 +190,10 @@ const Register = () => {
 
           <button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full flex justify-center items-center py-3 px-4 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150 shadow-md"
+            disabled={isLoading}
+            className="w-full flex justify-center items-center py-3 px-4 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150 shadow-md shadow-indigo-600/20 cursor-pointer"
           >
-            {isSubmitting ? (
+            {isLoading ? (
               <span className="inline-flex items-center">
                 <svg
                   className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
@@ -178,12 +217,12 @@ const Register = () => {
                 Creating Account...
               </span>
             ) : (
-              'Sign Up'
+              'Sign Up Free'
             )}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
+        <p className="mt-6 text-center text-sm text-gray-600 dark:text-zinc-400">
           Already have an account?{' '}
           <Link
             to="/login"

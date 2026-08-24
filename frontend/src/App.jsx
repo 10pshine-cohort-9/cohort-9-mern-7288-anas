@@ -12,14 +12,14 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   const dispatch = useDispatch();
-  const { isLoading } = useSelector((state) => state.auth);
+  const { isInitialLoading } = useSelector((state) => state.auth);
 
   useEffect(() => {
     dispatch(getCurrentUser());
   }, [dispatch]);
 
   // Prevent rendering the routes until the backend verifies the cookie
-  if (isLoading) {
+  if (isInitialLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-white dark:bg-zinc-950">
         <div className="flex flex-col items-center space-y-3">

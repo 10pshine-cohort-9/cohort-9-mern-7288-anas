@@ -106,6 +106,22 @@ export const updateNote = createAsyncThunk(
   }
 );
 
+export const deleteNoteImage = createAsyncThunk(
+  "notes/deleteNoteImage",
+  async ({ publicId }, thunkAPI) => {
+    try {
+      const response = await axiosInstance.delete("/notes/delete-image", {
+        data: { publicId },
+      });
+      return { publicId, data: response.data?.data };
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Failed to delete image"
+      );
+    }
+  }
+);
+
 const initialState = {
   notes: [],
   activeNote: null,
