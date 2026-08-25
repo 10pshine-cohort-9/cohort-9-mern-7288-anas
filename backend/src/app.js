@@ -1,6 +1,6 @@
+import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
-import dotenv from 'dotenv'
 import cookieParser from "cookie-parser";
 
 dotenv.config();
@@ -13,30 +13,38 @@ import { User } from "./models/user.model.js";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 app.post(
-  '/api/stripe/webhook',
-  express.raw({ type: 'application/json' }),
+  "/api/stripe/webhook",
+  express.raw({ type: "application/json" }),
   async (req, res) => {
-    const sig = req.headers['stripe-signature'];
+    const sig = req.headers["stripe-signature"];
     let event;
 
     try {
       event = stripe.webhooks.constructEvent(
-        req.body, // This will now remain a raw buffer!
+        req.body,
         sig,
-        process.env.STRIPE_WEBHOOK_SECRET
+        process.env.STRIPE_WEBHOOK_SECRET,
       );
     } catch (err) {
       console.error(`❌ Webhook Error: ${err.message}`);
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    if (event.type === 'checkout.session.completed') {
+    if (event.type === "checkout.session.completed") {
       const session = event.data.object;
       const userEmail = session.customer_details?.email;
-      const purchasedPlan = session.metadata?.plan || 'Pro Creator';
-      const stripeCustomerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
+      const purchasedPlan = session.metadata?.plan || "Pro Creator";
+      const stripeCustomerId =
+        typeof session.customer === "string"
+          ? session.customer
+          : session.customer?.id;
 
-      console.log('💰 Payment successful for:', userEmail, 'Plan:', purchasedPlan);
+      console.log(
+        "💰 Payment successful for:",
+        userEmail,
+        "Plan:",
+        purchasedPlan,
+      );
 
       if (userEmail) {
         try {
@@ -48,34 +56,37 @@ app.post(
                 ...(stripeCustomerId ? { stripeCustomerId } : {}),
               },
             },
-            { new: true }
+            { new: true },
           );
 
           if (updatedUser) {
-            console.log(`✅ Subscription plan updated to "${purchasedPlan}" for user: ${userEmail}`);
+            console.log(
+              `✅ Subscription plan updated to "${purchasedPlan}" for user: ${userEmail}`,
+            );
           } else {
-            console.warn(`⚠️ Webhook Warning: User with email "${userEmail}" not found in database.`);
+            console.warn(
+              `⚠️ Webhook Warning: User with email "${userEmail}" not found in database.`,
+            );
           }
         } catch (dbErr) {
-          console.error(`❌ Error updating user subscription in database: ${dbErr.message}`);
+          console.error(
+            `❌ Error updating user subscription in database: ${dbErr.message}`,
+          );
         }
       }
     }
 
     res.json({ received: true });
-  }
+  },
 );
 
-// Configurations
 
-//  app.use -> middleware
 
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
 
-// cors configurations
 
 app.use(
   cors({
@@ -90,9 +101,9 @@ app.use(
   }),
 );
 
+import { globalLimiter } from "./middlewares/rateLimiter.middleware.js";
 
-
-// routes
+app.use("/api", globalLimiter);
 
 import userRoute from "./routes/user.routes.js";
 import noteRoute from "./routes/note.routes.js";
@@ -102,7 +113,6 @@ app.use("/api/v1/users", userRoute);
 app.use("/api/v1/notes", noteRoute);
 app.use("/api/v1/stripe", paymentRoute);
 
-// Global error handling middleware
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   const message = err.message || "Internal Server Error";

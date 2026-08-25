@@ -254,7 +254,7 @@ const changeSubscriptionPlan = asyncHandler(async (req, res) => {
         subscriptionPlan: planToSet,
       },
     },
-    { new: true }
+    { new: true },
   ).select("-password -refreshToken");
 
   if (!updatedUser) {

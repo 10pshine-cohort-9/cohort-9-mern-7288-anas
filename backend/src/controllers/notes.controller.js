@@ -66,7 +66,6 @@ const getUserNotes = asyncHandler(async (req, res) => {
   };
 
   if (search && typeof search === "string" && search.trim() !== "") {
-    // Sanitize, cap length, and escape regex metacharacters to prevent ReDoS / backtracking attacks
     const sanitizedSearch = search
       .trim()
       .slice(0, 100)
@@ -226,14 +225,10 @@ const updateNote = asyncHandler(async (req, res) => {
       updateFields.content = content;
     }
 
-    // Atomic update query
     const query = {
       _id: noteId,
       owner: req.user?._id,
-      $or: [
-        { version: currentVersion },
-        { version: { $exists: false } },
-      ],
+      $or: [{ version: currentVersion }, { version: { $exists: false } }],
     };
 
     const updatedNote = await Note.findOneAndUpdate(
@@ -285,10 +280,8 @@ const deleteNote = asyncHandler(async (req, res) => {
       throw new ApiError(403, "You are not authorized to delete this note");
     }
 
-    // 1. Find all associated image records for this note
     const associatedImages = await NoteImage.find({ note: noteId });
 
-    // 2. Delete each associated image from Cloudinary
     if (associatedImages.length > 0) {
       const successfulImageIds = [];
 
@@ -320,13 +313,11 @@ const deleteNote = asyncHandler(async (req, res) => {
         }),
       );
 
-      // 3. Delete only NoteImage records whose Cloudinary deletion succeeded from MongoDB
       if (successfulImageIds.length > 0) {
         await NoteImage.deleteMany({ _id: { $in: successfulImageIds } });
       }
     }
 
-    // 4. Delete the note document
     await Note.findByIdAndDelete(noteId);
 
     return res
@@ -413,7 +404,6 @@ const deleteNoteImage = asyncHandler(async (req, res) => {
   }
 
   try {
-    // Authorize deletion by checking tracked image ownership
     const imageRecord = await NoteImage.findOne({
       publicId: publicId.trim(),
     });
@@ -428,10 +418,7 @@ const deleteNoteImage = asyncHandler(async (req, res) => {
 
     const result = await deleteFromCloudinary(publicId.trim());
 
-    if (
-      !result ||
-      (result.result !== "ok" && result.result !== "not found")
-    ) {
+    if (!result || (result.result !== "ok" && result.result !== "not found")) {
       throw new ApiError(500, "Failed to delete image from Cloudinary");
     }
 

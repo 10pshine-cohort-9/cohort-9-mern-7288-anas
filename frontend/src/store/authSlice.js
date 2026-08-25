@@ -74,7 +74,6 @@ export const updateSubscriptionPlan = createAsyncThunk(
   },
 );
 
-// Backward-compatible named exports
 export const loginUser = login;
 export const registerUser = register;
 
@@ -109,7 +108,6 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // getCurrentUser
       .addCase(getCurrentUser.pending, (state) => {
         state.isInitialLoading = true;
       })
@@ -125,7 +123,6 @@ const authSlice = createSlice({
         state.userData = null;
       })
 
-      // login
       .addCase(login.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -143,7 +140,6 @@ const authSlice = createSlice({
         state.error = action.payload;
       })
 
-      // register
       .addCase(register.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -157,7 +153,6 @@ const authSlice = createSlice({
         state.error = action.payload;
       })
 
-      // updateSubscriptionPlan
       .addCase(updateSubscriptionPlan.fulfilled, (state, action) => {
         state.userData = action.payload;
         state.error = null;
