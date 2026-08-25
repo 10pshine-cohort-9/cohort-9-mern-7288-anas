@@ -11,11 +11,22 @@ import {
   deleteFromCloudinary,
 } from "../utils/cloudinary.js";
 
-/**
- * Helper function to clean up Cloudinary assets and NoteImage records for a deleted note.
- */
+
 const cleanupAssociatedNoteImages = async (noteId) => {
-  const associatedImages = await NoteImage.find({ note: noteId });
+  let associatedImages;
+  try {
+    associatedImages = await NoteImage.find({ note: noteId });
+  } catch (error) {
+    logger.error(
+      { noteId, error },
+      "Database error while fetching associated note images for cleanup",
+    );
+    throw new ApiError(
+      500,
+      "Failed to fetch associated note images during cleanup",
+    );
+  }
+
   if (!associatedImages.length) return;
 
   const successfulImageIds = [];
@@ -47,15 +58,37 @@ const cleanupAssociatedNoteImages = async (noteId) => {
   );
 
   if (successfulImageIds.length > 0) {
-    await NoteImage.deleteMany({ _id: { $in: successfulImageIds } });
+    try {
+      await NoteImage.deleteMany({ _id: { $in: successfulImageIds } });
+    } catch (error) {
+      logger.error(
+        { noteId, error },
+        "Database error while deleting associated note image records after Cloudinary cleanup",
+      );
+      throw new ApiError(
+        500,
+        "Failed to delete associated note image records from database",
+      );
+    }
+  }
+
+  if (successfulImageIds.length < associatedImages.length) {
+    logger.error(
+      {
+        noteId,
+        totalImages: associatedImages.length,
+        successfulDeletions: successfulImageIds.length,
+      },
+      "Failed to clean up all associated note images from Cloudinary",
+    );
+    throw new ApiError(
+      500,
+      "Failed to clean up all associated note images",
+    );
   }
 };
 
-/**
- * @desc    Create a new note
- * @route   POST /api/v1/notes
- * @access  Private (Protected with verifyJWT)
- */
+
 const createNote = asyncHandler(async (req, res) => {
   const { title, content } = req.body;
 
@@ -88,11 +121,7 @@ const createNote = asyncHandler(async (req, res) => {
   }
 });
 
-/**
- * @desc    Get all notes for logged-in user with pagination and optional search
- * @route   GET /api/v1/notes
- * @access  Private (Protected with verifyJWT)
- */
+
 const getUserNotes = asyncHandler(async (req, res) => {
   const {
     search,
@@ -159,11 +188,7 @@ const getUserNotes = asyncHandler(async (req, res) => {
   }
 });
 
-/**
- * @desc    Get a single note by ID
- * @route   GET /api/v1/notes/:noteId
- * @access  Private (Protected with verifyJWT)
- */
+
 const getNoteById = asyncHandler(async (req, res) => {
   const { noteId } = req.params;
 
@@ -195,11 +220,7 @@ const getNoteById = asyncHandler(async (req, res) => {
   }
 });
 
-/**
- * @desc    Update/Edit an existing note
- * @route   PATCH /api/v1/notes/:noteId
- * @access  Private (Protected with verifyJWT)
- */
+
 const updateNote = asyncHandler(async (req, res) => {
   const { noteId } = req.params;
   const { title, content, revision, version } = req.body;
@@ -298,11 +319,7 @@ const updateNote = asyncHandler(async (req, res) => {
   }
 });
 
-/**
- * @desc    Delete a note
- * @route   DELETE /api/v1/notes/:noteId
- * @access  Private (Protected with verifyJWT)
- */
+
 const deleteNote = asyncHandler(async (req, res) => {
   const { noteId } = req.params;
 
@@ -328,12 +345,7 @@ const deleteNote = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Note deleted successfully"));
 });
 
-/**
- * @desc    Upload an image inline for rich text editor (Notion-like)
- *          Saves temporarily via Multer -> Uploads to Cloudinary -> Deletes local temp file
- * @route   POST /api/v1/notes/upload-image
- * @access  Private (Protected with verifyJWT, upload.single("image"))
- */
+
 
 const uploadNoteImage = asyncHandler(async (req, res) => {
   const localFilePath = req.file?.path;
@@ -386,11 +398,7 @@ const uploadNoteImage = asyncHandler(async (req, res) => {
   }
 });
 
-/**
- * @desc    Delete an image from Cloudinary (optional cleanup when removed from rich text)
- * @route   DELETE /api/v1/notes/delete-image
- * @access  Private (Protected with verifyJWT)
- */
+
 const deleteNoteImage = asyncHandler(async (req, res) => {
   const { publicId } = req.body;
 

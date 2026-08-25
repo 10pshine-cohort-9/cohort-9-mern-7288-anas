@@ -47,9 +47,16 @@ const processSuccessfulSubscription = async (session) => {
       return;
     }
 
-    logger.info({ userEmail, purchasedPlan }, "Subscription plan updated for user");
+    logger.info(
+      { userEmail, purchasedPlan },
+      "Subscription plan updated for user",
+    );
   } catch (dbErr) {
-    logger.error(dbErr, "Error updating user subscription in database");
+    logger.error(
+      { err: dbErr },
+      "Error updating user subscription in database",
+    );
+    throw dbErr;
   }
 };
 
@@ -71,21 +78,23 @@ app.post(
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    if (event.type === "checkout.session.completed") {
-      await processSuccessfulSubscription(event.data.object);
+    try {
+      if (event.type === "checkout.session.completed") {
+        await processSuccessfulSubscription(event.data.object);
+      }
+    } catch (error) {
+      logger.error({ err: error }, "Webhook processing failed");
+      return res.status(500).json({ received: false });
     }
 
     return res.json({ received: true });
   },
 );
 
-
-
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
-
 
 app.use(
   cors({
