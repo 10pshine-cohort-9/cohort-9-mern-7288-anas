@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import { ApiError } from "../utils/ApiError.js";
 
 const userSchema = new Schema(
   {
@@ -32,11 +33,19 @@ const userSchema = new Schema(
 
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
-  this.password = await bcrypt.hash(this.password, 10);
+  try {
+    this.password = await bcrypt.hash(this.password, 10);
+  } catch (error) {
+    throw new ApiError(500, "Failed to hash password");
+  }
 });
 
 userSchema.methods.isPasswordCorrect = async function (password) {
-  return await bcrypt.compare(password, this.password);
+  try {
+    return await bcrypt.compare(password, this.password);
+  } catch (error) {
+    throw new ApiError(500, "Failed to verify password");
+  }
 };
 
 userSchema.methods.generateAccessToken = function () {

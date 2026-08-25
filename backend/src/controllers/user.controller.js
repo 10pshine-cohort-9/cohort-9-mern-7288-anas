@@ -25,7 +25,11 @@ const generateAccessAndRefreshTokens = async (userId) => {
 const registerUser = asyncHandler(async (req, res) => {
   const { username, email, password } = req.body;
 
-  if ([username, email, password].some((field) => field?.trim() === "")) {
+  if (
+    ![username, email, password].every(
+      (field) => typeof field === "string" && field.trim().length > 0,
+    )
+  ) {
     throw new ApiError(400, "All fields are required");
   }
 
@@ -57,7 +61,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
     return res
       .status(201)
-      .json(new ApiResponse(200, createdUser, "User register successfully"));
+      .json(new ApiResponse(201, createdUser, "User register successfully"));
   } catch (error) {
     throw error instanceof ApiError
       ? error
@@ -73,6 +77,14 @@ const loginUser = asyncHandler(async (req, res) => {
 
   if (!(username || email)) {
     throw new ApiError(400, "Username or email is required");
+  }
+
+  if (
+    !password ||
+    typeof password !== "string" ||
+    password.trim().length === 0
+  ) {
+    throw new ApiError(400, "Password is required");
   }
 
   try {
@@ -163,9 +175,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 const getCurrentUser = asyncHandler(async (req, res) => {
   return res
     .status(200)
-    .json(
-      new ApiResponse(200, req.user, "Current user fetched successfully"),
-    );
+    .json(new ApiResponse(200, req.user, "Current user fetched successfully"));
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
@@ -192,13 +202,32 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       throw new ApiError(401, "Refresh token is expired and used");
     }
 
+    const accessToken = user.generateAccessToken();
+    const newRefreshToken = user.generateRefreshToken();
+
+    const updatedUser = await User.findOneAndUpdate(
+      {
+        _id: user._id,
+        refreshToken: incomingRefreshToken,
+      },
+      {
+        $set: {
+          refreshToken: newRefreshToken,
+        },
+      },
+      {
+        new: true,
+      },
+    );
+
+    if (!updatedUser) {
+      throw new ApiError(401, "Refresh token is expired and used");
+    }
+
     const options = {
       httpOnly: true,
       secure: true,
     };
-
-    const { accessToken, refreshToken: newRefreshToken } =
-      await generateAccessAndRefreshTokens(user._id);
 
     return res
       .status(200)

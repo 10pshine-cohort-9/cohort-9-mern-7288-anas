@@ -18,7 +18,7 @@ import {
 const createNote = asyncHandler(async (req, res) => {
   const { title, content } = req.body;
 
-  if (!title || title.trim() === "") {
+  if (typeof title !== "string" || title.trim() === "") {
     throw new ApiError(400, "Title is required");
   }
 
@@ -288,13 +288,28 @@ const deleteNote = asyncHandler(async (req, res) => {
     // 1. Find all associated image records for this note
     const associatedImages = await NoteImage.find({ note: noteId });
 
-    // 2. Delete each associated image from Cloudinary (graceful handling)
+    // 2. Delete each associated image from Cloudinary
     if (associatedImages.length > 0) {
+      const successfulImageIds = [];
+
       await Promise.allSettled(
         associatedImages.map(async (image) => {
           try {
             if (image.publicId) {
-              await deleteFromCloudinary(image.publicId);
+              const result = await deleteFromCloudinary(image.publicId);
+              if (
+                result &&
+                (result.result === "ok" || result.result === "not found")
+              ) {
+                successfulImageIds.push(image._id);
+              } else {
+                console.error(
+                  `Cloudinary deletion failed or returned non-success result for image ${image.publicId}:`,
+                  result,
+                );
+              }
+            } else {
+              successfulImageIds.push(image._id);
             }
           } catch (cloudinaryError) {
             console.error(
@@ -305,8 +320,10 @@ const deleteNote = asyncHandler(async (req, res) => {
         }),
       );
 
-      // 3. Delete associated NoteImage records from MongoDB
-      await NoteImage.deleteMany({ note: noteId });
+      // 3. Delete only NoteImage records whose Cloudinary deletion succeeded from MongoDB
+      if (successfulImageIds.length > 0) {
+        await NoteImage.deleteMany({ _id: { $in: successfulImageIds } });
+      }
     }
 
     // 4. Delete the note document
@@ -410,6 +427,13 @@ const deleteNoteImage = asyncHandler(async (req, res) => {
     }
 
     const result = await deleteFromCloudinary(publicId.trim());
+
+    if (
+      !result ||
+      (result.result !== "ok" && result.result !== "not found")
+    ) {
+      throw new ApiError(500, "Failed to delete image from Cloudinary");
+    }
 
     await NoteImage.findByIdAndDelete(imageRecord._id);
 

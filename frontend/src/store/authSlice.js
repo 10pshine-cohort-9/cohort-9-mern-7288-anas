@@ -9,21 +9,20 @@ export const getCurrentUser = createAsyncThunk(
       return response.data?.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message ||
-        error.message ||
-        "Session expired"
+        error.response?.data?.message || error.message || "Session expired",
       );
     }
-  }
+  },
 );
 
 export const login = createAsyncThunk(
   "auth/login",
   async ({ email, username, password }, { rejectWithValue }) => {
     try {
+      const identifier = (username || email || "").trim();
       const payload = {
-        email: email || username,
-        username: username || email,
+        username: username ? username.trim() : identifier,
+        email: email ? email.trim() : identifier,
         password,
       };
       const response = await axiosInstance.post("/users/login", payload);
@@ -31,11 +30,11 @@ export const login = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message ||
-        error.message ||
-        "An unexpected error occurred"
+          error.message ||
+          "An unexpected error occurred",
       );
     }
-  }
+  },
 );
 
 export const register = createAsyncThunk(
@@ -52,11 +51,11 @@ export const register = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message ||
-        error.message ||
-        "An unexpected error occurred"
+          error.message ||
+          "An unexpected error occurred",
       );
     }
-  }
+  },
 );
 
 // Backward-compatible named exports
@@ -144,5 +143,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { setUser, logout, clearError, clearAuthError } = authSlice.actions;
+export const { setUser, logout, clearError, clearAuthError } =
+  authSlice.actions;
 export default authSlice.reducer;
