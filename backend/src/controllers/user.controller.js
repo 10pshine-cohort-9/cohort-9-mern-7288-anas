@@ -216,7 +216,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         },
       },
       {
-        new: true,
+        returnDocument: "after",
       },
     );
 
@@ -254,7 +254,7 @@ const changeSubscriptionPlan = asyncHandler(async (req, res) => {
         subscriptionPlan: planToSet,
       },
     },
-    { new: true },
+    { returnDocument: "after" },
   ).select("-password -refreshToken");
 
   if (!updatedUser) {

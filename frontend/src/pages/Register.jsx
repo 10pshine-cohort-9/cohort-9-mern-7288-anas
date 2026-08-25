@@ -26,7 +26,6 @@ const Register = () => {
 
   useEffect(() => {
     dispatch(clearError());
-    setErrorMsg("");
     return () => {
       dispatch(clearError());
     };

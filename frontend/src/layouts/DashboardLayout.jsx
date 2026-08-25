@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { NavLink, Outlet, useNavigate, useParams } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchNotes, createNote, deleteNote } from '../store/notesSlice.js';
-import { logout } from '../store/authSlice.js';
-import { axiosInstance } from '../api/axios.js';
+import { useState, useEffect } from "react";
+import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchNotes, createNote, deleteNote } from "../store/notesSlice.js";
+import { logout } from "../store/authSlice.js";
+import { axiosInstance } from "../api/axios.js";
 
 const DashboardLayout = () => {
   const dispatch = useDispatch();
@@ -14,7 +14,7 @@ const DashboardLayout = () => {
   const { notes, isLoading, isCreating } = useSelector((state) => state.notes);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
@@ -24,14 +24,14 @@ const DashboardLayout = () => {
   const handleCreateNote = async () => {
     try {
       const newNote = await dispatch(
-        createNote({ title: 'Untitled', content: '' })
+        createNote({ title: "Untitled", content: "" }),
       ).unwrap();
 
       if (newNote?._id) {
         navigate(`/dashboard/${newNote._id}`);
       }
     } catch (err) {
-      console.error('Failed to create note:', err);
+      console.error("Failed to create note:", err);
     }
   };
 
@@ -40,7 +40,7 @@ const DashboardLayout = () => {
     e.preventDefault();
 
     const isConfirmed = window.confirm(
-      'Are you sure you want to delete this note? This action cannot be undone.'
+      "Are you sure you want to delete this note? This action cannot be undone.",
     );
     if (!isConfirmed) {
       return;
@@ -49,45 +49,46 @@ const DashboardLayout = () => {
     try {
       await dispatch(deleteNote(idToDelete)).unwrap();
       if (noteId === idToDelete) {
-        navigate('/dashboard');
+        navigate("/dashboard");
       }
     } catch (err) {
-      console.error('Failed to delete note:', err);
+      console.error("Failed to delete note:", err);
     }
   };
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      await axiosInstance.post('/users/logout');
+      await axiosInstance.post("/users/logout");
     } catch (err) {
-      console.error('Logout error on server:', err);
+      console.error("Logout error on server:", err);
     } finally {
       dispatch(logout());
-      navigate('/');
-      setIsLoggingOut(false);
+      window.location.href = "/";
     }
   };
 
   const filteredNotes = notes.filter((note) =>
-    (note.title || 'Untitled')
+    (note.title || "Untitled")
       .toLowerCase()
-      .includes(searchQuery.toLowerCase().trim())
+      .includes(searchQuery.toLowerCase().trim()),
   );
 
   const displayName =
-    userData?.fullName || userData?.username || userData?.email || 'User';
+    userData?.fullName || userData?.username || userData?.email || "User";
 
   const userInitial = displayName.charAt(0).toUpperCase();
 
   const activeNote = notes.find((n) => n._id === noteId);
-  const currentTitle = activeNote?.title && activeNote.title.trim() !== '' 
-    ? activeNote.title 
-    : (noteId ? 'Untitled' : 'Workspace');
+  const currentTitle =
+    activeNote?.title && activeNote.title.trim() !== ""
+      ? activeNote.title
+      : noteId
+        ? "Untitled"
+        : "Workspace";
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white text-slate-900 font-sans selection:bg-indigo-500 selection:text-white">
-      {/* Mobile Sidebar Backdrop */}
       {isSidebarOpen && (
         <div
           className="fixed inset-0 z-20 bg-slate-900/30 backdrop-blur-xs md:hidden"
@@ -95,21 +96,21 @@ const DashboardLayout = () => {
         />
       )}
 
-      {/* 1. Left Sidebar (Expanded Width: w-80, bg-slate-50, border-r border-slate-200) */}
       <aside
         className={`fixed md:static inset-y-0 left-0 z-30 flex flex-col border-r border-slate-200 bg-slate-50 transition-all duration-200 ease-in-out shrink-0 ${
           isSidebarOpen
-            ? 'w-80 translate-x-0'
-            : '-translate-x-full md:w-0 md:translate-x-0 md:border-none'
+            ? "w-80 translate-x-0"
+            : "-translate-x-full md:w-0 md:translate-x-0 md:border-none"
         }`}
       >
         {isSidebarOpen && (
           <div className="flex flex-col h-full w-80">
-            {/* Header: NotesFlow Logo & Prominent Pill-shaped "New Note" Button */}
             <div className="p-6 flex flex-col space-y-5 border-b border-slate-200/80">
               <div className="flex items-center justify-between">
                 <NavLink to="/" className="flex items-center space-x-2 group">
-                  <span className="text-xl group-hover:scale-110 transition-transform">⚡</span>
+                  <span className="text-xl group-hover:scale-110 transition-transform">
+                    ⚡
+                  </span>
                   <span className="font-extrabold text-xl tracking-tight text-slate-900">
                     NotesFlow
                   </span>
@@ -120,13 +121,22 @@ const DashboardLayout = () => {
                   title="Collapse sidebar"
                   className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+                    />
                   </svg>
                 </button>
               </div>
 
-              {/* Prominent Deep Slate/Navy Pill-shaped "New Note" Button */}
               <button
                 onClick={handleCreateNote}
                 disabled={isCreating}
@@ -134,16 +144,41 @@ const DashboardLayout = () => {
               >
                 {isCreating ? (
                   <>
-                    <svg className="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    <svg
+                      className="animate-spin w-4 h-4 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
                     </svg>
                     <span>Creating Note...</span>
                   </>
                 ) : (
                   <>
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+                    <svg
+                      className="w-4 h-4 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2.5"
+                        d="M12 4v16m8-8H4"
+                      />
                     </svg>
                     <span>New Note</span>
                   </>
@@ -151,7 +186,6 @@ const DashboardLayout = () => {
               </button>
             </div>
 
-            {/* Search Input Box */}
             <div className="px-6 pt-4 pb-2">
               <div className="relative flex items-center">
                 <svg
@@ -160,7 +194,12 @@ const DashboardLayout = () => {
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
                 </svg>
                 <input
                   type="text"
@@ -172,7 +211,6 @@ const DashboardLayout = () => {
               </div>
             </div>
 
-            {/* Notes List Section Title */}
             <div className="px-6 pt-3 pb-1 flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
               <span>All Notes</span>
               <span className="bg-slate-200/70 text-slate-600 px-2 py-0.5 rounded-full text-[10px] font-semibold">
@@ -180,7 +218,6 @@ const DashboardLayout = () => {
               </span>
             </div>
 
-            {/* Scrollable Notes List */}
             <ul className="flex-1 overflow-y-auto px-4 py-2 space-y-1 list-none m-0 scrollbar-thin">
               {isLoading && notes.length === 0 ? (
                 <li className="list-none space-y-2 p-2">
@@ -190,20 +227,24 @@ const DashboardLayout = () => {
                 </li>
               ) : filteredNotes.length === 0 ? (
                 <li className="list-none px-4 py-8 text-center text-xs text-slate-400 font-medium">
-                  {searchQuery ? 'No notes match your search.' : 'No notes yet. Click "+ New Note" to start!'}
+                  {searchQuery
+                    ? "No notes match your search."
+                    : 'No notes yet. Click "+ New Note" to start!'}
                 </li>
               ) : (
                 filteredNotes.map((note) => {
                   const isActive = noteId === note._id;
                   const noteTitle =
-                    note.title && note.title.trim() !== '' ? note.title : 'Untitled';
+                    note.title && note.title.trim() !== ""
+                      ? note.title
+                      : "Untitled";
                   return (
                     <li
                       key={note._id}
                       className={`group relative flex items-center justify-between rounded-lg text-sm transition-colors cursor-pointer ${
                         isActive
-                          ? 'bg-indigo-50 text-slate-900 font-semibold px-3 py-2'
-                          : 'text-slate-600 hover:bg-slate-200/50 rounded-lg px-3 py-2'
+                          ? "bg-indigo-50 text-slate-900 font-semibold px-3 py-2"
+                          : "text-slate-600 hover:bg-slate-200/50 rounded-lg px-3 py-2"
                       }`}
                     >
                       <NavLink
@@ -212,7 +253,9 @@ const DashboardLayout = () => {
                       >
                         <svg
                           className={`w-4 h-4 shrink-0 ${
-                            isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'
+                            isActive
+                              ? "text-indigo-600"
+                              : "text-slate-400 group-hover:text-slate-600"
                           }`}
                           fill="none"
                           stroke="currentColor"
@@ -228,7 +271,6 @@ const DashboardLayout = () => {
                         <span className="truncate">{noteTitle}</span>
                       </NavLink>
 
-                      {/* Delete Action Button */}
                       <button
                         type="button"
                         onClick={(e) => handleDeleteNote(e, note._id)}
@@ -236,7 +278,12 @@ const DashboardLayout = () => {
                         title={`Delete note: ${noteTitle}`}
                         className="ml-2 p-1 rounded-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-100 text-slate-400 hover:text-red-600 transition-all cursor-pointer"
                       >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -251,7 +298,6 @@ const DashboardLayout = () => {
               )}
             </ul>
 
-            {/* Footer Profile Block & Upgrade Badge */}
             <div className="p-4 border-t border-slate-200/80 bg-slate-100/60">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3 min-w-0 pr-2">
@@ -264,14 +310,14 @@ const DashboardLayout = () => {
                         {displayName}
                       </p>
                       {userData?.subscriptionPlan &&
-                        userData.subscriptionPlan !== 'Starter' && (
+                        userData.subscriptionPlan !== "Starter" && (
                           <span className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm ml-2 shrink-0">
                             {userData.subscriptionPlan}
                           </span>
                         )}
                     </div>
                     <p className="text-[11px] text-slate-500 truncate">
-                      {userData?.email || ''}
+                      {userData?.email || ""}
                     </p>
                   </div>
                 </div>
@@ -282,7 +328,12 @@ const DashboardLayout = () => {
                   title="Sign out"
                   className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -297,9 +348,7 @@ const DashboardLayout = () => {
         )}
       </aside>
 
-      {/* 2. Main Editor Canvas Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-white">
-        {/* Top Navbar: Minimal, Padded (p-6), Breadcrumb & Share Button */}
         <header className="p-6 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
           <div className="flex items-center space-x-3">
             {!isSidebarOpen && (
@@ -308,15 +357,27 @@ const DashboardLayout = () => {
                 title="Expand sidebar"
                 className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
                 </svg>
               </button>
             )}
-            
-            {/* Breadcrumb Text */}
+
             <nav className="flex items-center space-x-2 text-sm text-slate-400 font-medium">
-              <NavLink to="/dashboard" className="hover:text-slate-700 transition-colors">
+              <NavLink
+                to="/dashboard"
+                className="hover:text-slate-700 transition-colors"
+              >
                 Workspace
               </NavLink>
               <span>/</span>
@@ -325,11 +386,8 @@ const DashboardLayout = () => {
               </span>
             </nav>
           </div>
-
-          
         </header>
 
-        {/* Dynamic Nested Content via Outlet (DashboardIndex or NoteEditor) */}
         <div className="flex-1 overflow-y-auto">
           <Outlet />
         </div>

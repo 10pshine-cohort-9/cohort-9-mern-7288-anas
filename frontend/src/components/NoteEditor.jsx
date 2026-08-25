@@ -42,7 +42,6 @@ const extractCloudinaryPublicId = (url) => {
     let rest = pathname.substring(uploadIndex + "/upload/".length);
     const segments = rest.split("/").filter(Boolean);
 
-    // Find version segment (v followed by digits)
     const versionIndex = segments.findIndex((seg) => /^v\d+$/.test(seg));
 
     let publicIdSegments = [];
@@ -96,13 +95,11 @@ const NoteEditorForm = ({ note }) => {
 
   const { isSaving } = useSelector((state) => state.notes);
 
-  // Local state for title, content, and save status
   const [title, setTitle] = useState(note?.title || "");
   const [content, setContent] = useState(note?.content || "");
-  const [saveStatus, setSaveStatus] = useState("saved"); // 'saved' | 'saving' | 'unsaved' | 'error'
+  const [saveStatus, setSaveStatus] = useState("saved");
   const [lastSavedAt, setLastSavedAt] = useState(null);
 
-  // Image upload state & error toast
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [errorToast, setErrorToast] = useState(null);
   const toastTimeoutRef = useRef(null);
@@ -113,10 +110,8 @@ const NoteEditorForm = ({ note }) => {
   const contentRef = useRef(content);
   const saveRequestIdRef = useRef(0);
 
-  // Ref tracking current image URLs present in editor
   const currentImagesRef = useRef(getImageUrlsMap(note?.content || ""));
   const savedImagesRef = useRef(getImageUrlsMap(note?.content || ""));
-  // Ref mapping image URLs to server-returned public_id
   const urlToPublicIdRef = useRef(new Map());
 
   useEffect(() => {
@@ -176,7 +171,6 @@ const NoteEditorForm = ({ note }) => {
           return;
         }
 
-        // Compare the persisted snapshot against the content just confirmed by the server
         const savedMap = getImageUrlsMap(contentToSave);
         for (const [oldUrl] of savedImagesRef.current) {
           if (!savedMap.has(oldUrl)) {
@@ -200,7 +194,6 @@ const NoteEditorForm = ({ note }) => {
         setSaveStatus("saved");
         setLastSavedAt(new Date());
       } catch (err) {
-        // If superseded by a newer save, do not display error for this stale dispatch
         if (saveRequestIdRef.current === requestId) {
           console.error("Failed to update note:", err);
           setSaveStatus("error");
@@ -210,7 +203,6 @@ const NoteEditorForm = ({ note }) => {
     [dispatch, note],
   );
 
-  // Flush any pending save, then clear timers on unmount.
   const performSaveRef = useRef(null);
   useEffect(() => {
     performSaveRef.current = performSave;
@@ -229,7 +221,6 @@ const NoteEditorForm = ({ note }) => {
     };
   }, []);
 
-  // Warn before browser navigation/tab close if there are unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       if (saveStatus === "unsaved") {
@@ -284,7 +275,6 @@ const NoteEditorForm = ({ note }) => {
     performSave(titleRef.current, contentRef.current);
   }, [performSave]);
 
-  // Global keyboard shortcut: Ctrl+S / Cmd+S for manual save
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
@@ -347,7 +337,8 @@ const NoteEditorForm = ({ note }) => {
         );
 
         const uploadedUrl = response.data?.data?.url || response.data?.url;
-        const publicId = response.data?.data?.public_id || response.data?.public_id;
+        const publicId =
+          response.data?.data?.public_id || response.data?.public_id;
 
         if (!uploadedUrl) {
           throw new Error("Image URL was not returned by server");
@@ -367,7 +358,6 @@ const NoteEditorForm = ({ note }) => {
           editor.setSelection(insertIndex + 1);
 
           const updatedHtml = editor.root.innerHTML;
-          // Update images map with newly inserted image
           currentImagesRef.current = getImageUrlsMap(updatedHtml);
           setContent(updatedHtml);
           triggerDebouncedSave(titleRef.current, updatedHtml);
@@ -412,7 +402,6 @@ const NoteEditorForm = ({ note }) => {
 
   return (
     <div className="relative flex flex-col h-full bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-      {/* Top Action Bar */}
       <div className="sticky top-0 z-10 flex items-center justify-between px-6 sm:px-12 md:px-16 py-2 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-100 dark:border-zinc-800">
         <div className="flex items-center space-x-2 text-xs text-zinc-400 dark:text-zinc-500">
           <span className="inline-block w-2 h-2 rounded-full bg-emerald-500/80" />
@@ -425,7 +414,6 @@ const NoteEditorForm = ({ note }) => {
           )}
         </div>
 
-        {/* Single Consolidated Status Indicator & Manual Save Actions */}
         <div className="flex items-center space-x-2">
           {isUploadingImage ? (
             <div className="flex items-center space-x-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-medium">
@@ -570,7 +558,6 @@ const NoteEditorForm = ({ note }) => {
         </div>
       </div>
 
-      {/* Error Toast Notification (Only shown on errors) */}
       {errorToast && (
         <div
           className="fixed bottom-6 right-6 z-50 flex items-center space-x-2.5 px-4 py-3 rounded-lg shadow-xl text-xs font-medium bg-red-600 text-white border border-red-500 shadow-red-950/20 animate-in fade-in slide-in-from-bottom-2"
@@ -613,10 +600,8 @@ const NoteEditorForm = ({ note }) => {
         </div>
       )}
 
-      {/* Document Canvas (The Canvas: max-w-3xl mx-auto w-full pt-10 px-8) */}
       <div className="flex-1 overflow-y-auto bg-white">
         <div className="max-w-3xl mx-auto w-full pt-10 px-8 pb-32">
-          {/* Borderless Title Input: Massive tracking-tight H1 */}
           <div className="mb-6">
             <input
               type="text"
@@ -628,7 +613,6 @@ const NoteEditorForm = ({ note }) => {
             />
           </div>
 
-          {/* Minimal Rich Text Toolbar & Text Area */}
           <div className="notion-quill-wrapper text-slate-700 text-lg leading-relaxed">
             <ReactQuill
               ref={quillRef}
@@ -657,7 +641,6 @@ const NoteEditor = () => {
 
   const existingNote = notes.find((n) => n._id === noteId);
 
-  // Fetch if note is not present in Redux notes array or activeNote
   useEffect(() => {
     if (noteId && !existingNote && activeNote?._id !== noteId) {
       dispatch(fetchNoteById(noteId));
@@ -667,7 +650,6 @@ const NoteEditor = () => {
   const currentNote =
     existingNote || (activeNote?._id === noteId ? activeNote : null);
 
-  // Skeleton Loader when note is fetching
   if (isLoading && !currentNote) {
     return (
       <div className="max-w-4xl mx-auto px-6 sm:px-12 md:px-16 pt-8 pb-20 animate-pulse">
@@ -682,7 +664,6 @@ const NoteEditor = () => {
     );
   }
 
-  // Not Found State
   if (!currentNote && !isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">

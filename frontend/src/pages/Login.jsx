@@ -32,7 +32,6 @@ const Login = () => {
 
   useEffect(() => {
     dispatch(clearError());
-    setErrorMsg("");
     return () => {
       dispatch(clearError());
     };
