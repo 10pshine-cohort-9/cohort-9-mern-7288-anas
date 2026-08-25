@@ -1,8 +1,50 @@
-import { Link } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import axiosInstance from '../utils/axiosInstance';
+import { updateSubscriptionPlan } from '../store/authSlice.js';
 
 const Home = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { status: isAuthenticated } = useSelector((state) => state.auth);
+  const [loadingPlan, setLoadingPlan] = useState(null);
+
+  const handleStarterPlan = async () => {
+    if (isAuthenticated) {
+      setLoadingPlan('Starter');
+      try {
+        await dispatch(updateSubscriptionPlan('Starter')).unwrap();
+        navigate('/dashboard');
+      } catch (err) {
+        console.error('Failed to change plan to Starter:', err);
+      } finally {
+        setLoadingPlan(null);
+      }
+    } else {
+      navigate('/register');
+    }
+  };
+
+  const handleCheckout = async (priceId, planName) => {
+    setLoadingPlan(planName);
+    try {
+      const response = await axiosInstance.post('/stripe/create-checkout-session', {
+        priceId,
+        planName,
+      });
+      const url = response.data?.url || response.data?.data?.url;
+      if (url) {
+        window.location.href = url;
+      } else {
+        console.error('Checkout URL not received from server');
+        setLoadingPlan(null);
+      }
+    } catch (error) {
+      console.error('Stripe checkout error:', error);
+      setLoadingPlan(null);
+    }
+  };
 
   return (
     <div className="relative isolate min-h-screen bg-[#F9FAFB] text-slate-900 selection:bg-indigo-500 selection:text-white flex flex-col font-sans overflow-x-hidden">
@@ -263,12 +305,14 @@ const Home = () => {
               </div>
 
               <div className="mt-8">
-                <Link
-                  to={isAuthenticated ? '/dashboard' : '/register'}
-                  className="block w-full py-2.5 px-4 rounded-full border border-slate-200/80 text-slate-700 font-semibold hover:bg-slate-50 transition-colors text-center text-xs"
+                <button
+                  type="button"
+                  onClick={handleStarterPlan}
+                  disabled={loadingPlan !== null}
+                  className="block w-full py-2.5 px-4 rounded-full border border-slate-200/80 text-slate-700 font-semibold hover:bg-slate-50 transition-colors text-center text-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
-                  Get Started Free
-                </Link>
+                  {loadingPlan === 'Starter' ? 'Updating Plan...' : 'Get Started Free'}
+                </button>
               </div>
             </div>
 
@@ -310,12 +354,14 @@ const Home = () => {
               </div>
 
               <div className="mt-8">
-                <Link
-                  to={isAuthenticated ? '/dashboard' : '/register'}
-                  className="block w-full py-2.5 px-4 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/30 transition-all text-center text-xs"
+                <button
+                  type="button"
+                  onClick={() => handleCheckout('price_1U7zpuCH9KlriAmIzJZI3epT', 'Pro Creator')}
+                  disabled={loadingPlan !== null}
+                  className="block w-full py-2.5 px-4 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/30 transition-all text-center text-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
-                  Upgrade to Pro
-                </Link>
+                  {loadingPlan === 'Pro Creator' ? 'Redirecting...' : 'Upgrade to Pro'}
+                </button>
               </div>
             </div>
 
@@ -350,12 +396,14 @@ const Home = () => {
               </div>
 
               <div className="mt-8">
-                <Link
-                  to={isAuthenticated ? '/dashboard' : '/register'}
-                  className="block w-full py-2.5 px-4 rounded-full border border-slate-200/80 text-slate-700 font-semibold hover:bg-slate-50 transition-colors text-center text-xs"
+                <button
+                  type="button"
+                  onClick={() => handleCheckout('price_1U7zpuCH9KlriAmIzJZI3epT', 'Team Workspace')}
+                  disabled={loadingPlan !== null}
+                  className="block w-full py-2.5 px-4 rounded-full border border-slate-200/80 text-slate-700 font-semibold hover:bg-slate-50 transition-colors text-center text-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
-                  Contact Sales
-                </Link>
+                  {loadingPlan === 'Team Workspace' ? 'Redirecting...' : 'Upgrade to Team'}
+                </button>
               </div>
             </div>
           </div>

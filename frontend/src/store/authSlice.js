@@ -58,6 +58,22 @@ export const register = createAsyncThunk(
   },
 );
 
+export const updateSubscriptionPlan = createAsyncThunk(
+  "auth/updateSubscriptionPlan",
+  async (planName, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post("/users/change-plan", {
+        planName,
+      });
+      return response.data?.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to update subscription plan",
+      );
+    }
+  },
+);
+
 // Backward-compatible named exports
 export const loginUser = login;
 export const registerUser = register;
@@ -139,6 +155,12 @@ const authSlice = createSlice({
       .addCase(register.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
+      })
+
+      // updateSubscriptionPlan
+      .addCase(updateSubscriptionPlan.fulfilled, (state, action) => {
+        state.userData = action.payload;
+        state.error = null;
       });
   },
 });

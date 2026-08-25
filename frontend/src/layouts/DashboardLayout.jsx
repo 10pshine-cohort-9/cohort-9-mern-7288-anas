@@ -263,7 +263,12 @@ const DashboardLayout = () => {
                       <p className="text-xs font-bold text-slate-900 truncate">
                         {displayName}
                       </p>
-                      
+                      {userData?.subscriptionPlan &&
+                        userData.subscriptionPlan !== 'Starter' && (
+                          <span className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm ml-2 shrink-0">
+                            {userData.subscriptionPlan}
+                          </span>
+                        )}
                     </div>
                     <p className="text-[11px] text-slate-500 truncate">
                       {userData?.email || ''}

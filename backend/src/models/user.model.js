@@ -27,6 +27,14 @@ const userSchema = new Schema(
     refreshToken: {
       type: String,
     },
+    subscriptionPlan: {
+      type: String,
+      enum: ["Starter", "Pro Creator", "Team Workspace"],
+      default: "Starter",
+    },
+    stripeCustomerId: {
+      type: String,
+    },
   },
   { timestamps: true },
 );
