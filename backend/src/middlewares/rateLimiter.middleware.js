@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import { createClient } from "redis";
 import { rateLimit } from "express-rate-limit";
 import { RedisStore } from "rate-limit-redis";
+import logger from "../utils/logger.js";
 
 dotenv.config();
 
@@ -10,11 +11,12 @@ const redisClient = createClient({
 });
 
 redisClient.on("error", (err) => {
-  console.error("❌ Redis Client Error:", err);
+  logger.error(err , "Redis Client Error:");
 });
 
 await redisClient.connect().catch((err) => {
-  console.error("❌ Failed to connect to Redis:", err);
+  logger.error(err , "Failed to connect to Redis:");
+
 });
 
 export const globalLimiter = rateLimit({
