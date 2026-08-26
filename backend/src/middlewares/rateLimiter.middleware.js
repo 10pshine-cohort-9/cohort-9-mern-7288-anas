@@ -18,7 +18,7 @@ await redisClient.connect().catch((err) => {
 });
 
 export const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: 1 * 60 * 1000,
   limit: 100,
   standardHeaders: true,
   legacyHeaders: false,
@@ -34,7 +34,7 @@ export const globalLimiter = rateLimit({
 });
 
 export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: 1 * 60 * 1000,
   limit: 5,
   standardHeaders: true,
   legacyHeaders: false,

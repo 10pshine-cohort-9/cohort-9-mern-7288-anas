@@ -361,7 +361,7 @@ const Home = () => {
                   type="button"
                   onClick={() =>
                     handleCheckout(
-                      "price_1U7zpuCH9KlriAmIzJZI3epT",
+                      import.meta.env.VITE_STRIPE_PRO_PRICE_ID,
                       "Pro Creator",
                     )
                   }
@@ -415,7 +415,7 @@ const Home = () => {
                   type="button"
                   onClick={() =>
                     handleCheckout(
-                      "price_1U7zpuCH9KlriAmIzJZI3epT",
+                      import.meta.env.VITE_STRIPE_TEAM_PRICE_ID,
                       "Team Workspace",
                     )
                   }

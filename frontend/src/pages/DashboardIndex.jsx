@@ -2,6 +2,12 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { createNote } from "../store/notesSlice.js";
 
+const stripHtmlAndDecode = (htmlString) => {
+  if (!htmlString) return '';
+  const doc = new DOMParser().parseFromString(htmlString, 'text/html');
+  return doc.body.textContent || "";
+};
+
 const DashboardIndex = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -24,6 +30,8 @@ const DashboardIndex = () => {
       console.error("Failed to create note:", err);
     }
   };
+
+  
 
   return (
     <div className="min-h-full flex flex-col items-center justify-center p-6 md:p-12 max-w-3xl mx-auto text-center">
@@ -109,7 +117,7 @@ const DashboardIndex = () => {
                   </h3>
                   <p className="text-xs text-slate-500 truncate mt-0.5 font-normal">
                     {note.content
-                      ? note.content.replace(/<[^>]*>?/gm, "").slice(0, 50)
+                      ? stripHtmlAndDecode(note.content).slice(0, 60)
                       : "Empty note"}
                   </p>
                 </div>
