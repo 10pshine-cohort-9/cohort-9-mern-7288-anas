@@ -9,15 +9,22 @@ const Home = () => {
   const navigate = useNavigate();
   const { status: isAuthenticated } = useSelector((state) => state.auth);
   const [loadingPlan, setLoadingPlan] = useState(null);
+  const [planError, setPlanError] = useState(null);
 
   const handleStarterPlan = async () => {
     if (isAuthenticated) {
       setLoadingPlan("Starter");
+      setPlanError(null);
       try {
         await dispatch(updateSubscriptionPlan("Starter")).unwrap();
         navigate("/dashboard");
       } catch (err) {
         console.error("Failed to change plan to Starter:", err);
+        const errorMessage =
+          typeof err === "string"
+            ? err
+            : err?.message || "Failed to update subscription to Starter plan.";
+        setPlanError(errorMessage);
       } finally {
         setLoadingPlan(null);
       }
@@ -28,6 +35,7 @@ const Home = () => {
 
   const handleCheckout = async (priceId, planName) => {
     setLoadingPlan(planName);
+    setPlanError(null);
     try {
       const response = await axiosInstance.post(
         "/stripe/create-checkout-session",
@@ -40,11 +48,19 @@ const Home = () => {
       if (url) {
         window.location.href = url;
       } else {
-        console.error("Checkout URL not received from server");
+        const errorMsg =
+          "Checkout URL not received from server. Please try again.";
+        console.error(errorMsg);
+        setPlanError(errorMsg);
         setLoadingPlan(null);
       }
     } catch (error) {
       console.error("Stripe checkout error:", error);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to initiate checkout. Please try again.";
+      setPlanError(errorMessage);
       setLoadingPlan(null);
     }
   };
@@ -269,6 +285,17 @@ const Home = () => {
               team collaboration.
             </p>
           </div>
+
+          {planError && (
+            <div
+              aria-live="polite"
+              role="alert"
+              className="mt-6 max-w-2xl mx-auto p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium text-center shadow-xs flex items-center justify-center space-x-2"
+            >
+              <span className="text-rose-500 font-bold">⚠️</span>
+              <span>{planError}</span>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12 items-stretch">
             <div className="bg-white rounded-2xl border border-slate-200/80 p-8 shadow-lg shadow-slate-200/50 flex flex-col justify-between hover:border-slate-300 transition-colors text-left">

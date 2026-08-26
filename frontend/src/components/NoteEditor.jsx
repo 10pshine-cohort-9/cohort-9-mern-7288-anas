@@ -90,6 +90,33 @@ const getImageUrlsMap = (html) => {
   return map;
 };
 
+const transformPosition = (pos, delta) => {
+  if (pos === null || pos === undefined || !delta || !Array.isArray(delta.ops)) {
+    return pos;
+  }
+  let oldPos = 0;
+  let newPos = 0;
+  for (const op of delta.ops) {
+    if (oldPos > pos) break;
+    if (op.retain) {
+      oldPos += op.retain;
+      newPos += op.retain;
+    } else if (op.insert) {
+      const len = typeof op.insert === "string" ? op.insert.length : 1;
+      if (oldPos <= pos) {
+        newPos += len;
+      }
+    } else if (op.delete) {
+      if (oldPos < pos) {
+        const delBefore = Math.min(op.delete, pos - oldPos);
+        newPos -= delBefore;
+      }
+      oldPos += op.delete;
+    }
+  }
+  return newPos;
+};
+
 const NoteEditorForm = ({ note }) => {
   const dispatch = useDispatch();
 
@@ -183,26 +210,52 @@ const NoteEditorForm = ({ note }) => {
     [getSafeEditor],
   );
 
-  const clearGhostText = useCallback(() => {
-    const currentSugg = suggestionRef.current;
-    const currentPos = cursorPositionRef.current;
+  const clearGhostText = useCallback(
+    (delta = null) => {
+      const currentSugg = suggestionRef.current;
+      const currentPos = cursorPositionRef.current;
 
-    if (currentSugg && currentPos !== null) {
-      const editor = getSafeEditor();
-      if (editor) {
-        try {
-          editor.deleteText(currentPos, currentSugg.length, "silent");
-        } catch (err) {
-          console.error("Failed to delete ghost text:", err);
+      if (currentSugg && currentPos !== null) {
+        const editor = getSafeEditor();
+        if (editor) {
+          try {
+            const targetPos = transformPosition(currentPos, delta);
+            const suggLen = currentSugg.length;
+
+            let actualPos = targetPos;
+            if (editor.getText(targetPos, suggLen) !== currentSugg) {
+              const fullText = editor.getText();
+              const searchStart = Math.max(0, targetPos - 50);
+              const foundIdx = fullText.indexOf(currentSugg, searchStart);
+              if (foundIdx !== -1) {
+                actualPos = foundIdx;
+              } else {
+                const fallbackIdx = fullText.indexOf(currentSugg);
+                if (fallbackIdx !== -1) {
+                  actualPos = fallbackIdx;
+                }
+              }
+            }
+
+            if (
+              actualPos !== -1 &&
+              editor.getText(actualPos, suggLen) === currentSugg
+            ) {
+              editor.deleteText(actualPos, suggLen, "silent");
+            }
+          } catch (err) {
+            console.error("Failed to delete ghost text:", err);
+          }
         }
       }
-    }
 
-    setSuggestion("");
-    setCursorPosition(null);
-    suggestionRef.current = "";
-    cursorPositionRef.current = null;
-  }, [getSafeEditor]);
+      setSuggestion("");
+      setCursorPosition(null);
+      suggestionRef.current = "";
+      cursorPositionRef.current = null;
+    },
+    [getSafeEditor],
+  );
 
   const handleToggleAiAutocomplete = useCallback(() => {
     setIsAiAutocompleteEnabled((prev) => {
@@ -334,21 +387,29 @@ const NoteEditorForm = ({ note }) => {
   };
 
   const handleContentChange = useCallback(
-    (value, _delta, source) => {
-      const newImagesMap = getImageUrlsMap(value);
+    (value, delta, source) => {
+      const editor = getSafeEditor();
+
+      if (
+        source === "user" &&
+        suggestionRef.current &&
+        cursorPositionRef.current !== null
+      ) {
+        clearGhostText(delta);
+      } else if (source !== "user" && suggestionRef.current) {
+        return;
+      }
+
+      const updatedValue = editor ? editor.root.innerHTML : value;
+      const newImagesMap = getImageUrlsMap(updatedValue);
       currentImagesRef.current = newImagesMap;
-      contentRef.current = value;
-      setContent(value);
-      triggerDebouncedSave(titleRef.current, value);
+      contentRef.current = updatedValue;
+      setContent(updatedValue);
+      triggerDebouncedSave(titleRef.current, updatedValue);
 
       if (source !== "user" || !isAiAutocompleteEnabled) return;
 
-      const quill = getSafeEditor();
-      if (!quill) return;
-
-      if (suggestionRef.current && cursorPositionRef.current !== null) {
-        clearGhostText();
-      }
+      if (!editor) return;
 
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);

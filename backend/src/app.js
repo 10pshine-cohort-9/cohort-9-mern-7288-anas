@@ -28,7 +28,13 @@ const processSuccessfulSubscription = async (session) => {
       ? session.customer
       : session.customer?.id;
 
-  logger.info({ userEmail, purchasedPlan }, "Stripe payment successful");
+  logger.info(
+    {
+      ...(stripeCustomerId ? { stripeCustomerId } : {}),
+      purchasedPlan,
+    },
+    "Stripe payment successful",
+  );
 
   try {
     const updatedUser = await User.findOneAndUpdate(
@@ -43,12 +49,18 @@ const processSuccessfulSubscription = async (session) => {
     );
 
     if (!updatedUser) {
-      logger.warn({ userEmail }, "Webhook Warning: User not found in database");
+      logger.warn(
+        { ...(stripeCustomerId ? { stripeCustomerId } : {}) },
+        "Webhook Warning: User not found in database",
+      );
       return;
     }
 
     logger.info(
-      { userEmail, purchasedPlan },
+      {
+        ...(stripeCustomerId ? { stripeCustomerId } : {}),
+        purchasedPlan,
+      },
       "Subscription plan updated for user",
     );
   } catch (dbErr) {

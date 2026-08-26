@@ -322,15 +322,24 @@ const deleteNote = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid note ID");
   }
 
-  const note = await Note.findById(noteId);
-  verifyNoteAccess(note, req.user?._id, "delete");
+  try {
+    const note = await Note.findById(noteId);
+    verifyNoteAccess(note, req.user?._id, "delete");
 
-  await cleanupAssociatedNoteImages(noteId);
-  await Note.findByIdAndDelete(noteId);
+    await cleanupAssociatedNoteImages(noteId);
+    await Note.findByIdAndDelete(noteId);
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, {}, "Note deleted successfully"));
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "Note deleted successfully"));
+  } catch (error) {
+    throw error instanceof ApiError
+      ? error
+      : new ApiError(
+          500,
+          error?.message || "Something went wrong while deleting the note",
+        );
+  }
 });
 
 
