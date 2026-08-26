@@ -58,6 +58,7 @@ const Home = () => {
       console.error("Stripe checkout error:", error);
       const errorMessage =
         error.response?.data?.message ||
+        error.response?.data?.error ||
         error.message ||
         "Failed to initiate checkout. Please try again.";
       setPlanError(errorMessage);
