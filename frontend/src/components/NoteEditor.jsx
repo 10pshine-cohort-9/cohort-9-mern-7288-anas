@@ -90,6 +90,33 @@ const getImageUrlsMap = (html) => {
   return map;
 };
 
+const transformPosition = (pos, delta) => {
+  if (pos === null || pos === undefined || !delta || !Array.isArray(delta.ops)) {
+    return pos;
+  }
+  let oldPos = 0;
+  let newPos = 0;
+  for (const op of delta.ops) {
+    if (oldPos > pos) break;
+    if (op.retain) {
+      oldPos += op.retain;
+      newPos += op.retain;
+    } else if (op.insert) {
+      const len = typeof op.insert === "string" ? op.insert.length : 1;
+      if (oldPos <= pos) {
+        newPos += len;
+      }
+    } else if (op.delete) {
+      if (oldPos < pos) {
+        const delBefore = Math.min(op.delete, pos - oldPos);
+        newPos -= delBefore;
+      }
+      oldPos += op.delete;
+    }
+  }
+  return newPos;
+};
+
 const NoteEditorForm = ({ note }) => {
   const dispatch = useDispatch();
 
@@ -104,8 +131,14 @@ const NoteEditorForm = ({ note }) => {
   const [errorToast, setErrorToast] = useState(null);
   const toastTimeoutRef = useRef(null);
 
+  const [isAiAutocompleteEnabled, setIsAiAutocompleteEnabled] = useState(true);
+  const [suggestion, setSuggestion] = useState("");
+  const [cursorPosition, setCursorPosition] = useState(null);
+
   const quillRef = useRef(null);
   const debounceTimerRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
+
   const titleRef = useRef(title);
   const contentRef = useRef(content);
   const saveRequestIdRef = useRef(0);
@@ -113,6 +146,17 @@ const NoteEditorForm = ({ note }) => {
   const currentImagesRef = useRef(getImageUrlsMap(note?.content || ""));
   const savedImagesRef = useRef(getImageUrlsMap(note?.content || ""));
   const urlToPublicIdRef = useRef(new Map());
+
+  const suggestionRef = useRef(suggestion);
+  const cursorPositionRef = useRef(cursorPosition);
+
+  useEffect(() => {
+    suggestionRef.current = suggestion;
+  }, [suggestion]);
+
+  useEffect(() => {
+    cursorPositionRef.current = cursorPosition;
+  }, [cursorPosition]);
 
   useEffect(() => {
     titleRef.current = title;
@@ -140,6 +184,91 @@ const NoteEditorForm = ({ note }) => {
       }, duration);
     }
   }, []);
+
+  const getSafeEditor = useCallback(() => {
+    try {
+      if (!quillRef.current) return null;
+      if (quillRef.current.editor) {
+        return quillRef.current.editor;
+      }
+      if (typeof quillRef.current.getEditor === "function") {
+        return quillRef.current.getEditor();
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }, []);
+
+  const injectGhostText = useCallback(
+    (text, position) => {
+      const editor = getSafeEditor();
+      if (!editor || position === null || position === undefined) return;
+      editor.insertText(position, text, { color: "#9ca3af" }, "silent");
+      editor.setSelection(position, 0, "silent");
+    },
+    [getSafeEditor],
+  );
+
+  const clearGhostText = useCallback(
+    (delta = null) => {
+      const currentSugg = suggestionRef.current;
+      const currentPos = cursorPositionRef.current;
+
+      if (currentSugg && currentPos !== null) {
+        const editor = getSafeEditor();
+        if (editor) {
+          try {
+            const targetPos = transformPosition(currentPos, delta);
+            const suggLen = currentSugg.length;
+
+            let actualPos = targetPos;
+            if (editor.getText(targetPos, suggLen) !== currentSugg) {
+              const fullText = editor.getText();
+              const searchStart = Math.max(0, targetPos - 50);
+              const foundIdx = fullText.indexOf(currentSugg, searchStart);
+              if (foundIdx !== -1) {
+                actualPos = foundIdx;
+              } else {
+                const fallbackIdx = fullText.indexOf(currentSugg);
+                if (fallbackIdx !== -1) {
+                  actualPos = fallbackIdx;
+                }
+              }
+            }
+
+            if (
+              actualPos !== -1 &&
+              editor.getText(actualPos, suggLen) === currentSugg
+            ) {
+              editor.deleteText(actualPos, suggLen, "silent");
+            }
+          } catch (err) {
+            console.error("Failed to delete ghost text:", err);
+          }
+        }
+      }
+
+      setSuggestion("");
+      setCursorPosition(null);
+      suggestionRef.current = "";
+      cursorPositionRef.current = null;
+    },
+    [getSafeEditor],
+  );
+
+  const handleToggleAiAutocomplete = useCallback(() => {
+    setIsAiAutocompleteEnabled((prev) => {
+      const nextState = !prev;
+      if (!nextState) {
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
+        clearGhostText();
+      }
+      return nextState;
+    });
+  }, [clearGhostText]);
 
   const performSave = useCallback(
     async (overrideTitle, overrideContent) => {
@@ -218,6 +347,9 @@ const NoteEditorForm = ({ note }) => {
       if (toastTimeoutRef.current) {
         clearTimeout(toastTimeoutRef.current);
       }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -242,7 +374,7 @@ const NoteEditorForm = ({ note }) => {
       }
       debounceTimerRef.current = setTimeout(() => {
         performSave(newTitle, newContent);
-      }, 10000);
+      }, 1000);
     },
     [performSave],
   );
@@ -254,18 +386,80 @@ const NoteEditorForm = ({ note }) => {
     triggerDebouncedSave(newTitle, contentRef.current);
   };
 
-  /**
-   * Handle content change
-   */
   const handleContentChange = useCallback(
-    (value) => {
-      const newImagesMap = getImageUrlsMap(value);
+    (value, delta, source) => {
+      const editor = getSafeEditor();
+
+      if (
+        source === "user" &&
+        suggestionRef.current &&
+        cursorPositionRef.current !== null
+      ) {
+        clearGhostText(delta);
+      } else if (source !== "user" && suggestionRef.current) {
+        return;
+      }
+
+      const updatedValue = editor ? editor.root.innerHTML : value;
+      const newImagesMap = getImageUrlsMap(updatedValue);
       currentImagesRef.current = newImagesMap;
-      contentRef.current = value;
-      setContent(value);
-      triggerDebouncedSave(titleRef.current, value);
+      contentRef.current = updatedValue;
+      setContent(updatedValue);
+      triggerDebouncedSave(titleRef.current, updatedValue);
+
+      if (source !== "user" || !isAiAutocompleteEnabled) return;
+
+      if (!editor) return;
+
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      typingTimeoutRef.current = setTimeout(async () => {
+        const currentQuill = getSafeEditor();
+        if (!currentQuill) return;
+
+        try {
+          const range = currentQuill.getSelection();
+          if (!range) return;
+          const currentPosition = range.index;
+
+          const plainText = currentQuill.getText(0, currentPosition);
+          const previousText = plainText.slice(-200);
+
+          if (!previousText || !previousText.trim()) return;
+
+          const response = await axiosInstance.post("/ai/autocomplete", {
+            title: titleRef.current,
+            previousText,
+          });
+
+          const suggestionText =
+            response.data?.suggestion || response.data?.data?.suggestion;
+
+          if (
+            suggestionText &&
+            typeof suggestionText === "string" &&
+            suggestionText.trim()
+          ) {
+            setSuggestion(suggestionText);
+            setCursorPosition(currentPosition);
+            suggestionRef.current = suggestionText;
+            cursorPositionRef.current = currentPosition;
+            injectGhostText(suggestionText, currentPosition);
+          }
+        } catch (error) {
+          console.error("AI Autocomplete fetch error:", error);
+        }
+      }, 1000);
     },
-    [triggerDebouncedSave],
+    [
+      triggerDebouncedSave,
+      isAiAutocompleteEnabled,
+      clearGhostText,
+      injectGhostText,
+      getSafeEditor,
+    ],
   );
 
   const handleManualSave = useCallback(() => {
@@ -289,9 +483,6 @@ const NoteEditorForm = ({ note }) => {
     };
   }, [handleManualSave]);
 
-  /**
-   * Custom Image Upload Handler for React Quill
-   */
   const imageHandler = useCallback(() => {
     if (!note?._id) {
       showErrorToast("Cannot upload image: Note is not loaded yet");
@@ -348,7 +539,7 @@ const NoteEditorForm = ({ note }) => {
           urlToPublicIdRef.current.set(uploadedUrl, publicId);
         }
 
-        const editor = quillRef.current?.getEditor();
+        const editor = getSafeEditor();
         if (editor) {
           const range = editor.getSelection(true) || {
             index: editor.getLength(),
@@ -373,7 +564,7 @@ const NoteEditorForm = ({ note }) => {
         setIsUploadingImage(false);
       }
     };
-  }, [note, showErrorToast, triggerDebouncedSave]);
+  }, [note, showErrorToast, triggerDebouncedSave, getSafeEditor]);
 
   const modules = useMemo(
     () => ({
@@ -391,8 +582,48 @@ const NoteEditorForm = ({ note }) => {
           image: imageHandler,
         },
       },
+      keyboard: {
+        bindings: {
+          tab: {
+            key: 9,
+            handler: function () {
+              const currentSuggestion = suggestionRef.current;
+              const cursorPos = cursorPositionRef.current;
+
+              if (currentSuggestion && cursorPos !== null) {
+                this.quill.formatText(
+                  cursorPos,
+                  currentSuggestion.length,
+                  "color",
+                  false,
+                  "silent",
+                );
+
+                this.quill.setSelection(
+                  cursorPos + currentSuggestion.length,
+                  0,
+                  "silent",
+                );
+
+                const newContent = this.quill.root.innerHTML;
+                contentRef.current = newContent;
+                setContent(newContent);
+                triggerDebouncedSave(titleRef.current, newContent);
+
+                suggestionRef.current = "";
+                cursorPositionRef.current = null;
+                setSuggestion("");
+                setCursorPosition(null);
+
+                return false;
+              }
+              return true;
+            },
+          },
+        },
+      },
     }),
-    [imageHandler],
+    [imageHandler, triggerDebouncedSave],
   );
 
   const formatTime = (date) => {
@@ -414,7 +645,45 @@ const NoteEditorForm = ({ note }) => {
           )}
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3">
+          <button
+            type="button"
+            onClick={handleToggleAiAutocomplete}
+            title={
+              isAiAutocompleteEnabled
+                ? "Click to disable AI Autocomplete"
+                : "Click to enable AI Autocomplete"
+            }
+            className={`flex items-center space-x-1.5 px-2.5 py-1 text-xs font-medium rounded-full border transition-all cursor-pointer ${
+              isAiAutocompleteEnabled
+                ? "bg-indigo-50/80 text-indigo-600 border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-400 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 shadow-xs"
+                : "bg-zinc-100 text-zinc-400 border-zinc-200 dark:bg-zinc-800/60 dark:text-zinc-500 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-800"
+            }`}
+          >
+            <svg
+              className={`w-3.5 h-3.5 ${
+                isAiAutocompleteEnabled
+                  ? "text-indigo-600 dark:text-indigo-400"
+                  : "text-zinc-400 dark:text-zinc-500"
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M13 10V3L4 14h7v7l9-11h-7z"
+              />
+            </svg>
+            <span>
+              AI Autocomplete:{" "}
+              <span className="font-bold">
+                {isAiAutocompleteEnabled ? "ON" : "OFF"}
+              </span>
+            </span>
+          </button>
           {isUploadingImage ? (
             <div className="flex items-center space-x-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-medium">
               <svg
@@ -640,17 +909,29 @@ const NoteEditor = () => {
   );
 
   const existingNote = notes.find((n) => n._id === noteId);
-
-  useEffect(() => {
-    if (noteId && !existingNote && activeNote?._id !== noteId) {
-      dispatch(fetchNoteById(noteId));
-    }
-  }, [noteId, existingNote, activeNote, dispatch]);
-
   const currentNote =
     existingNote || (activeNote?._id === noteId ? activeNote : null);
+  const shouldFetch = Boolean(
+    noteId && !existingNote && activeNote?._id !== noteId,
+  );
 
-  if (isLoading && !currentNote) {
+  const [isFetchingLocal, setIsFetchingLocal] = useState(shouldFetch);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (shouldFetch) {
+      dispatch(fetchNoteById(noteId)).finally(() => {
+        if (isMounted) setIsFetchingLocal(false);
+      });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [noteId, shouldFetch, dispatch]);
+
+  const isStillLoading = isLoading || (isFetchingLocal && !currentNote);
+
+  if (isStillLoading && !currentNote) {
     return (
       <div className="max-w-4xl mx-auto px-6 sm:px-12 md:px-16 pt-8 pb-20 animate-pulse">
         <div className="h-10 bg-zinc-200 dark:bg-zinc-800 rounded-md w-3/4 mb-6" />
@@ -664,7 +945,7 @@ const NoteEditor = () => {
     );
   }
 
-  if (!currentNote && !isLoading) {
+  if (!currentNote && !isStillLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
         <div className="w-14 h-14 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-2xl mb-4">

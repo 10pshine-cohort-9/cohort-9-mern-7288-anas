@@ -1,5 +1,5 @@
 import fs from "fs";
-import mongoose, { isValidObjectId } from "mongoose";
+import { isValidObjectId } from "mongoose";
 import { Note } from "../models/note.model.js";
 import { NoteImage } from "../models/noteImage.model.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -11,6 +11,15 @@ import {
   deleteFromCloudinary,
 } from "../utils/cloudinary.js";
 
+
+const verifyNoteAccess = (note, userId, action = "view") => {
+  if (!note) {
+    throw new ApiError(404, "Note not found");
+  }
+  if (note.owner.toString() !== userId?.toString()) {
+    throw new ApiError(403, `You are not authorized to ${action} this note`);
+  }
+};
 
 const cleanupAssociatedNoteImages = async (noteId) => {
   let associatedImages;
@@ -198,14 +207,7 @@ const getNoteById = asyncHandler(async (req, res) => {
 
   try {
     const note = await Note.findById(noteId);
-
-    if (!note) {
-      throw new ApiError(404, "Note not found");
-    }
-
-    if (note.owner.toString() !== req.user?._id.toString()) {
-      throw new ApiError(403, "You are not authorized to view this note");
-    }
+    verifyNoteAccess(note, req.user?._id, "view");
 
     return res
       .status(200)
@@ -244,14 +246,7 @@ const updateNote = asyncHandler(async (req, res) => {
 
   try {
     const existingNote = await Note.findById(noteId);
-
-    if (!existingNote) {
-      throw new ApiError(404, "Note not found");
-    }
-
-    if (existingNote.owner.toString() !== req.user?._id.toString()) {
-      throw new ApiError(403, "You are not authorized to edit this note");
-    }
+    verifyNoteAccess(existingNote, req.user?._id, "edit");
 
     const incomingRevision = revision ?? version;
     const currentVersion = existingNote.version ?? 0;
@@ -327,22 +322,24 @@ const deleteNote = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid note ID");
   }
 
-  const note = await Note.findById(noteId);
+  try {
+    const note = await Note.findById(noteId);
+    verifyNoteAccess(note, req.user?._id, "delete");
 
-  if (!note) {
-    throw new ApiError(404, "Note not found");
+    await cleanupAssociatedNoteImages(noteId);
+    await Note.findByIdAndDelete(noteId);
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "Note deleted successfully"));
+  } catch (error) {
+    throw error instanceof ApiError
+      ? error
+      : new ApiError(
+          500,
+          error?.message || "Something went wrong while deleting the note",
+        );
   }
-
-  if (note.owner.toString() !== req.user?._id.toString()) {
-    throw new ApiError(403, "You are not authorized to delete this note");
-  }
-
-  await cleanupAssociatedNoteImages(noteId);
-  await Note.findByIdAndDelete(noteId);
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, {}, "Note deleted successfully"));
 });
 
 

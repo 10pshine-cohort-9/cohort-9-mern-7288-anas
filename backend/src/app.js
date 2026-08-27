@@ -28,7 +28,13 @@ const processSuccessfulSubscription = async (session) => {
       ? session.customer
       : session.customer?.id;
 
-  logger.info({ userEmail, purchasedPlan }, "Stripe payment successful");
+  logger.info(
+    {
+      ...(stripeCustomerId ? { stripeCustomerId } : {}),
+      purchasedPlan,
+    },
+    "Stripe payment successful",
+  );
 
   try {
     const updatedUser = await User.findOneAndUpdate(
@@ -43,12 +49,18 @@ const processSuccessfulSubscription = async (session) => {
     );
 
     if (!updatedUser) {
-      logger.warn({ userEmail }, "Webhook Warning: User not found in database");
+      logger.warn(
+        { ...(stripeCustomerId ? { stripeCustomerId } : {}) },
+        "Webhook Warning: User not found in database",
+      );
       return;
     }
 
     logger.info(
-      { userEmail, purchasedPlan },
+      {
+        ...(stripeCustomerId ? { stripeCustomerId } : {}),
+        purchasedPlan,
+      },
       "Subscription plan updated for user",
     );
   } catch (dbErr) {
@@ -78,16 +90,17 @@ app.post(
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
+    if (event.type !== "checkout.session.completed") {
+      return res.json({ received: true });
+    }
+
     try {
-      if (event.type === "checkout.session.completed") {
-        await processSuccessfulSubscription(event.data.object);
-      }
+      await processSuccessfulSubscription(event.data.object);
+      return res.json({ received: true });
     } catch (error) {
       logger.error({ err: error }, "Webhook processing failed");
       return res.status(500).json({ received: false });
     }
-
-    return res.json({ received: true });
   },
 );
 
@@ -116,10 +129,12 @@ app.use("/api", globalLimiter);
 import userRoute from "./routes/user.routes.js";
 import noteRoute from "./routes/note.routes.js";
 import paymentRoute from "./routes/payment.route.js";
+import aiRoutes from './routes/ai.routes.js';
 
 app.use("/api/v1/users", userRoute);
 app.use("/api/v1/notes", noteRoute);
 app.use("/api/v1/stripe", paymentRoute);
+app.use('/api/v1/ai', aiRoutes);
 
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;

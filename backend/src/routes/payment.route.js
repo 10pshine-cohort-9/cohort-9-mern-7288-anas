@@ -14,7 +14,7 @@ router.post("/create-checkout-session", async (req, res) => {
       mode: "subscription",
       line_items: [
         {
-          price: priceId || "price_1U7zpuCH9KlriAmIzJZI3epT",
+          price: priceId || process.env.STRIPE_PRICE_ID,
           quantity: 1,
         },
       ],
