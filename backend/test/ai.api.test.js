@@ -11,19 +11,28 @@ describe("AI Autocomplete API Tests", () => {
 
 
   let testToken;
+  let originalAccessTokenSecret;
   const mockUserId = "64c8c8e1f1a2b3c4d5e6f7a8";
 
   before(() => {
     nock.disableNetConnect();
     nock.enableNetConnect(/(127\.0\.0\.1|localhost)/);
+    originalAccessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
+    process.env.ACCESS_TOKEN_SECRET =
+      process.env.ACCESS_TOKEN_SECRET || "fallback_secret";
     testToken = jwt.sign(
       { _id: mockUserId },
-      process.env.ACCESS_TOKEN_SECRET || "fallback_secret",
+      process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: "1h" },
     );
   });
 
   after(() => {
+    if (originalAccessTokenSecret !== undefined) {
+      process.env.ACCESS_TOKEN_SECRET = originalAccessTokenSecret;
+    } else {
+      delete process.env.ACCESS_TOKEN_SECRET;
+    }
     nock.enableNetConnect();
   });
 

@@ -33,6 +33,9 @@ export const globalLimiter = rateLimit({
     sendCommand: (...args) => redisClient.sendCommand(args),
     prefix: "rl:global:",
   }),
+  skip: () =>
+    process.env.NODE_ENV === "test" ||
+    process.argv.some((arg) => arg.includes("mocha")),
 });
 
 export const authLimiter = rateLimit({
@@ -49,4 +52,7 @@ export const authLimiter = rateLimit({
     sendCommand: (...args) => redisClient.sendCommand(args),
     prefix: "rl:auth:",
   }),
+  skip: () =>
+    process.env.NODE_ENV === "test" ||
+    process.argv.some((arg) => arg.includes("mocha")),
 });

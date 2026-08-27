@@ -9,14 +9,26 @@ import { NoteImage } from "../src/models/noteImage.model.js";
 
 describe("Note API Tests", () => {
   let testToken;
+  let originalAccessTokenSecret;
   const mockUserId = "64c8c8e1f1a2b3c4d5e6f7a8";
 
   before(() => {
+    originalAccessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
+    process.env.ACCESS_TOKEN_SECRET =
+      process.env.ACCESS_TOKEN_SECRET || "fallback_secret";
     testToken = jwt.sign(
       { _id: mockUserId },
-      process.env.ACCESS_TOKEN_SECRET || "fallback_secret",
+      process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: "1h" },
     );
+  });
+
+  after(() => {
+    if (originalAccessTokenSecret !== undefined) {
+      process.env.ACCESS_TOKEN_SECRET = originalAccessTokenSecret;
+    } else {
+      delete process.env.ACCESS_TOKEN_SECRET;
+    }
   });
 
   beforeEach(() => {
