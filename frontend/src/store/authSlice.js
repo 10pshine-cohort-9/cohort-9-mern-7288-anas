@@ -58,7 +58,22 @@ export const register = createAsyncThunk(
   },
 );
 
-// Backward-compatible named exports
+export const updateSubscriptionPlan = createAsyncThunk(
+  "auth/updateSubscriptionPlan",
+  async (planName, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post("/users/change-plan", {
+        planName,
+      });
+      return response.data?.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to update subscription plan",
+      );
+    }
+  },
+);
+
 export const loginUser = login;
 export const registerUser = register;
 
@@ -93,7 +108,6 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // getCurrentUser
       .addCase(getCurrentUser.pending, (state) => {
         state.isInitialLoading = true;
       })
@@ -109,7 +123,6 @@ const authSlice = createSlice({
         state.userData = null;
       })
 
-      // login
       .addCase(login.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -127,7 +140,6 @@ const authSlice = createSlice({
         state.error = action.payload;
       })
 
-      // register
       .addCase(register.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -139,6 +151,11 @@ const authSlice = createSlice({
       .addCase(register.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
+      })
+
+      .addCase(updateSubscriptionPlan.fulfilled, (state, action) => {
+        state.userData = action.payload;
+        state.error = null;
       });
   },
 });

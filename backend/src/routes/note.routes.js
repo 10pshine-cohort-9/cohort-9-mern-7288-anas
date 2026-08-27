@@ -13,16 +13,12 @@ import {
 
 const router = Router();
 
-
 router.use(verifyJWT);
-
 
 router.route("/").get(getUserNotes).post(createNote);
 
-
 router.route("/upload-image").post(upload.single("image"), uploadNoteImage);
 router.route("/delete-image").delete(deleteNoteImage);
-
 
 router.route("/:noteId").get(getNoteById).patch(updateNote).delete(deleteNote);
 

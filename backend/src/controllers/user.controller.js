@@ -241,10 +241,42 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
+const changeSubscriptionPlan = asyncHandler(async (req, res) => {
+  const { planName } = req.body;
+  const allowedPlans = ["Starter", "Pro Creator", "Team Workspace"];
+
+  const planToSet = allowedPlans.includes(planName) ? planName : "Starter";
+
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        subscriptionPlan: planToSet,
+      },
+    },
+    { new: true },
+  ).select("-password -refreshToken");
+
+  if (!updatedUser) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        updatedUser,
+        `Subscription plan updated to ${planToSet}`,
+      ),
+    );
+});
+
 export {
   registerUser,
   loginUser,
   logoutUser,
   refreshAccessToken,
   getCurrentUser,
+  changeSubscriptionPlan,
 };
