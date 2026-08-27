@@ -16,6 +16,7 @@ const mockMongooseQuery = (resolvedValue) => {
 
 describe("User Controller API Tests", () => {
   let testToken;
+  let originalRefreshTokenSecret;
   const mockUserId = "64c8c8e1f1a2b3c4d5e6f7a8";
 
   const mockUserDocument = {
@@ -38,168 +39,217 @@ describe("User Controller API Tests", () => {
     );
   });
 
+  beforeEach(() => {
+    originalRefreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
+  });
+
   afterEach(() => {
+    if (originalRefreshTokenSecret !== undefined) {
+      process.env.REFRESH_TOKEN_SECRET = originalRefreshTokenSecret;
+    } else {
+      delete process.env.REFRESH_TOKEN_SECRET;
+    }
     sinon.restore();
   });
 
   describe("POST /api/v1/users/register", () => {
     it("should successfully register a user and return 201", async () => {
-      sinon.stub(User, "findOne").resolves(null);
-      sinon.stub(User, "create").resolves({ _id: mockUserId });
+      try {
+        sinon.stub(User, "findOne").resolves(null);
+        sinon.stub(User, "create").resolves({ _id: mockUserId });
 
-      sinon.stub(User, "findById").returns(
-        mockMongooseQuery({
-          _id: mockUserId,
-          username: "anas",
-          email: "anas@example.com",
-        }),
-      );
+        sinon.stub(User, "findById").returns(
+          mockMongooseQuery({
+            _id: mockUserId,
+            username: "anas",
+            email: "anas@example.com",
+          }),
+        );
 
-      const res = await request(app)
-        .post("/api/v1/users/register")
-        .send({
-          username: "anas",
-          email: "anas@example.com",
-          password: "password123",
-        });
+        const res = await request(app)
+          .post("/api/v1/users/register")
+          .send({
+            username: "anas",
+            email: "anas@example.com",
+            password: "password123",
+          });
 
-      expect(res.status).to.equal(201);
-      expect(res.body.data.username).to.equal("anas");
+        expect(res.status).to.equal(201);
+        expect(res.body.data.username).to.equal("anas");
+      } catch (error) {
+        throw error;
+      }
     });
 
     it("should return 400 if required fields are missing", async () => {
-      const res = await request(app)
-        .post("/api/v1/users/register")
-        .send({ username: "anas" });
+      try {
+        const res = await request(app)
+          .post("/api/v1/users/register")
+          .send({ username: "anas" });
 
-      expect(res.status).to.equal(400);
+        expect(res.status).to.equal(400);
+      } catch (error) {
+        throw error;
+      }
     });
 
     it("should return 409 if username or email already exists", async () => {
-      sinon.stub(User, "findOne").resolves({ _id: "existingUser" });
+      try {
+        sinon.stub(User, "findOne").resolves({ _id: "existingUser" });
 
-      const res = await request(app)
-        .post("/api/v1/users/register")
-        .send({
-          username: "anas",
-          email: "anas@example.com",
-          password: "password123",
-        });
+        const res = await request(app)
+          .post("/api/v1/users/register")
+          .send({
+            username: "anas",
+            email: "anas@example.com",
+            password: "password123",
+          });
 
-      expect(res.status).to.equal(409);
+        expect(res.status).to.equal(409);
+      } catch (error) {
+        throw error;
+      }
     });
   });
 
   describe("POST /api/v1/users/login", () => {
     it("should successfully log in and return 200 with cookies", async () => {
-      sinon.stub(User, "findOne").resolves(mockUserDocument);
-      sinon.stub(User, "findById").returns(mockMongooseQuery(mockUserDocument));
+      try {
+        sinon.stub(User, "findOne").resolves(mockUserDocument);
+        sinon.stub(User, "findById").returns(mockMongooseQuery(mockUserDocument));
 
-      const res = await request(app)
-        .post("/api/v1/users/login")
-        .send({ email: "anas@example.com", password: "password123" });
+        const res = await request(app)
+          .post("/api/v1/users/login")
+          .send({ email: "anas@example.com", password: "password123" });
 
-      expect(res.status).to.equal(200);
-      expect(res.headers["set-cookie"].join()).to.include(
-        "accessToken=mockAccessToken",
-      );
+        expect(res.status).to.equal(200);
+        expect(res.headers["set-cookie"].join()).to.include(
+          "accessToken=mockAccessToken",
+        );
+      } catch (error) {
+        throw error;
+      }
     });
 
     it("should return 401 if password is incorrect", async () => {
-      const failedPasswordUser = {
-        ...mockUserDocument,
-        isPasswordCorrect: sinon.stub().resolves(false),
-      };
-      sinon.stub(User, "findOne").resolves(failedPasswordUser);
+      try {
+        const failedPasswordUser = {
+          ...mockUserDocument,
+          isPasswordCorrect: sinon.stub().resolves(false),
+        };
+        sinon.stub(User, "findOne").resolves(failedPasswordUser);
 
-      const res = await request(app)
-        .post("/api/v1/users/login")
-        .send({ email: "anas@example.com", password: "wrongpassword" });
+        const res = await request(app)
+          .post("/api/v1/users/login")
+          .send({ email: "anas@example.com", password: "wrongpassword" });
 
-      expect(res.status).to.equal(401);
+        expect(res.status).to.equal(401);
+      } catch (error) {
+        throw error;
+      }
     });
   });
 
   describe("POST /api/v1/users/logout", () => {
     it("should successfully log out and clear cookies", async () => {
-      sinon.stub(User, "findById").returns(mockMongooseQuery(mockUserDocument));
-      sinon.stub(User, "findByIdAndUpdate").resolves(true);
+      try {
+        sinon.stub(User, "findById").returns(mockMongooseQuery(mockUserDocument));
+        sinon.stub(User, "findByIdAndUpdate").resolves(true);
 
-      const res = await request(app)
-        .post("/api/v1/users/logout")
-        .set("Authorization", `Bearer ${testToken}`);
+        const res = await request(app)
+          .post("/api/v1/users/logout")
+          .set("Authorization", `Bearer ${testToken}`);
 
-      expect(res.status).to.equal(200);
-      expect(res.headers["set-cookie"].join()).to.include("accessToken=;");
+        expect(res.status).to.equal(200);
+        expect(res.headers["set-cookie"].join()).to.include("accessToken=;");
+      } catch (error) {
+        throw error;
+      }
     });
   });
 
   describe("GET /api/v1/users/current-user", () => {
     it("should fetch the current user profile", async () => {
-      sinon.stub(User, "findById").returns(mockMongooseQuery(mockUserDocument));
+      try {
+        sinon.stub(User, "findById").returns(mockMongooseQuery(mockUserDocument));
 
-      const res = await request(app)
-        .get("/api/v1/users/current-user")
-        .set("Authorization", `Bearer ${testToken}`);
+        const res = await request(app)
+          .get("/api/v1/users/current-user")
+          .set("Authorization", `Bearer ${testToken}`);
 
-      expect(res.status).to.equal(200);
-      expect(res.body.data.email).to.equal("anas@example.com");
+        expect(res.status).to.equal(200);
+        expect(res.body.data.email).to.equal("anas@example.com");
+      } catch (error) {
+        throw error;
+      }
     });
   });
 
   describe("POST /api/v1/users/refresh-token", () => {
     it("should refresh tokens and return 200", async () => {
-      process.env.REFRESH_TOKEN_SECRET = "temporary_test_secret";
+      try {
+        process.env.REFRESH_TOKEN_SECRET = "temporary_test_secret";
 
-      const realRefreshToken = jwt.sign(
-        { _id: mockUserId },
-        process.env.REFRESH_TOKEN_SECRET,
-        { expiresIn: "1d" },
-      );
+        const realRefreshToken = jwt.sign(
+          { _id: mockUserId },
+          process.env.REFRESH_TOKEN_SECRET,
+          { expiresIn: "1d" },
+        );
 
-      const refreshUserDoc = {
-        ...mockUserDocument,
-        refreshToken: realRefreshToken,
-      };
+        const refreshUserDoc = {
+          ...mockUserDocument,
+          refreshToken: realRefreshToken,
+        };
 
-      sinon.stub(User, "findById").resolves(refreshUserDoc);
-      sinon.stub(User, "findOneAndUpdate").resolves(refreshUserDoc);
+        sinon.stub(User, "findById").resolves(refreshUserDoc);
+        sinon.stub(User, "findOneAndUpdate").resolves(refreshUserDoc);
 
-      const res = await request(app)
-        .post("/api/v1/users/refresh-token")
-        .send({ refreshToken: realRefreshToken });
+        const res = await request(app)
+          .post("/api/v1/users/refresh-token")
+          .send({ refreshToken: realRefreshToken });
 
-      expect(res.status).to.equal(200);
-      expect(res.headers["set-cookie"].join()).to.include(
-        "accessToken=mockAccessToken",
-      );
+        expect(res.status).to.equal(200);
+        expect(res.headers["set-cookie"].join()).to.include(
+          "accessToken=mockAccessToken",
+        );
+      } catch (error) {
+        throw error;
+      }
     });
 
     it("should return 401 if refresh token is missing", async () => {
-      const res = await request(app).post("/api/v1/users/refresh-token");
-      expect(res.status).to.equal(401);
+      try {
+        const res = await request(app).post("/api/v1/users/refresh-token");
+        expect(res.status).to.equal(401);
+      } catch (error) {
+        throw error;
+      }
     });
   });
 
   describe("POST /api/v1/users/change-plan", () => {
     it("should update the subscription plan to Pro Creator", async () => {
-      sinon.stub(User, "findById").returns(mockMongooseQuery(mockUserDocument));
+      try {
+        sinon.stub(User, "findById").returns(mockMongooseQuery(mockUserDocument));
 
-      const updatedUser = {
-        ...mockUserDocument,
-        subscriptionPlan: "Pro Creator",
-      };
-      sinon
-        .stub(User, "findByIdAndUpdate")
-        .returns(mockMongooseQuery(updatedUser));
+        const updatedUser = {
+          ...mockUserDocument,
+          subscriptionPlan: "Pro Creator",
+        };
+        sinon
+          .stub(User, "findByIdAndUpdate")
+          .returns(mockMongooseQuery(updatedUser));
 
-      const res = await request(app)
-        .post("/api/v1/users/change-plan")
-        .set("Authorization", `Bearer ${testToken}`)
-        .send({ planName: "Pro Creator" });
+        const res = await request(app)
+          .post("/api/v1/users/change-plan")
+          .set("Authorization", `Bearer ${testToken}`)
+          .send({ planName: "Pro Creator" });
 
-      expect(res.status).to.equal(200);
-      expect(res.body.data.subscriptionPlan).to.equal("Pro Creator");
+        expect(res.status).to.equal(200);
+        expect(res.body.data.subscriptionPlan).to.equal("Pro Creator");
+      } catch (error) {
+        throw error;
+      }
     });
   });
 });

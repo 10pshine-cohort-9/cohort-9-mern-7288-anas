@@ -30,48 +30,56 @@ describe("Note Image Upload API Tests", () => {
   });
 
   it("should successfully upload an image and return 200", async () => {
-    sinon.stub(cloudinary.uploader, "upload").resolves({
-      public_id: "mock_cloudinary_id_123",
-      secure_url: "https://res.cloudinary.com/demo/image/upload/mock.jpg",
-      url: "http://res.cloudinary.com/demo/image/upload/mock.jpg",
-    });
+    try {
+      sinon.stub(cloudinary.uploader, "upload").resolves({
+        public_id: "mock_cloudinary_id_123",
+        secure_url: "https://res.cloudinary.com/demo/image/upload/mock.jpg",
+        url: "http://res.cloudinary.com/demo/image/upload/mock.jpg",
+      });
 
-    sinon.stub(NoteImage, "create").resolves({
-      _id: "mockImageDbId",
-      publicId: "mock_cloudinary_id_123",
-      url: "https://res.cloudinary.com/demo/image/upload/mock.jpg",
-      owner: mockUserId,
-    });
+      sinon.stub(NoteImage, "create").resolves({
+        _id: "mockImageDbId",
+        publicId: "mock_cloudinary_id_123",
+        url: "https://res.cloudinary.com/demo/image/upload/mock.jpg",
+        owner: mockUserId,
+      });
 
-    const fakeImageBuffer = Buffer.from("fake image content");
+      const fakeImageBuffer = Buffer.from("fake image content");
 
-    const response = await request(app)
-      .post("/api/v1/notes/upload-image")
-      .set("Authorization", `Bearer ${testToken}`)
-      .attach("image", fakeImageBuffer, "test.png");
+      const response = await request(app)
+        .post("/api/v1/notes/upload-image")
+        .set("Authorization", `Bearer ${testToken}`)
+        .attach("image", fakeImageBuffer, "test.png");
 
-    expect(response.status).to.equal(200);
-    expect(response.body.data).to.have.property("public_id");
-    expect(response.body.data.public_id).to.equal("mock_cloudinary_id_123");
+      expect(response.status).to.equal(200);
+      expect(response.body.data).to.have.property("public_id");
+      expect(response.body.data.public_id).to.equal("mock_cloudinary_id_123");
+    } catch (error) {
+      throw error;
+    }
   });
 
   it("should successfully delete an image and return 200", async () => {
-    sinon.stub(NoteImage, "findOne").resolves({
-      _id: "mockImageDbId",
-      publicId: "mock_cloudinary_id_123",
-      owner: mockUserId,
-    });
+    try {
+      sinon.stub(NoteImage, "findOne").resolves({
+        _id: "mockImageDbId",
+        publicId: "mock_cloudinary_id_123",
+        owner: mockUserId,
+      });
 
-    sinon.stub(cloudinary.uploader, "destroy").resolves({ result: "ok" });
+      sinon.stub(cloudinary.uploader, "destroy").resolves({ result: "ok" });
 
-    sinon.stub(NoteImage, "findByIdAndDelete").resolves(true);
+      sinon.stub(NoteImage, "findByIdAndDelete").resolves(true);
 
-    const response = await request(app)
-      .delete("/api/v1/notes/delete-image")
-      .set("Authorization", `Bearer ${testToken}`)
-      .send({ publicId: "mock_cloudinary_id_123" });
+      const response = await request(app)
+        .delete("/api/v1/notes/delete-image")
+        .set("Authorization", `Bearer ${testToken}`)
+        .send({ publicId: "mock_cloudinary_id_123" });
 
-    expect(response.status).to.equal(200);
-    expect(response.body.message).to.include("successfully");
+      expect(response.status).to.equal(200);
+      expect(response.body.message).to.include("successfully");
+    } catch (error) {
+      throw error;
+    }
   });
 });
