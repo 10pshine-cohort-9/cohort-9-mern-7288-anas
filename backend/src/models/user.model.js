@@ -36,7 +36,16 @@ const userSchema = new Schema(
       type: String,
     },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+    toJSON: {
+      transform: function (doc, ret) {
+        delete ret.password;
+        delete ret.refreshToken;
+        return ret;
+      },
+    },
+  },
 );
 
 userSchema.pre("save", async function () {

@@ -5,16 +5,90 @@ import { NoteImage } from "../models/noteImage.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import logger from "../utils/logger.js";
 import {
   uploadOnCloudinary,
   deleteFromCloudinary,
 } from "../utils/cloudinary.js";
 
-/**
- * @desc    Create a new note
- * @route   POST /api/v1/notes
- * @access  Private (Protected with verifyJWT)
- */
+
+const cleanupAssociatedNoteImages = async (noteId) => {
+  let associatedImages;
+  try {
+    associatedImages = await NoteImage.find({ note: noteId });
+  } catch (error) {
+    logger.error(
+      { noteId, error },
+      "Database error while fetching associated note images for cleanup",
+    );
+    throw new ApiError(
+      500,
+      "Failed to fetch associated note images during cleanup",
+    );
+  }
+
+  if (!associatedImages.length) return;
+
+  const successfulImageIds = [];
+
+  await Promise.allSettled(
+    associatedImages.map(async (image) => {
+      try {
+        if (!image.publicId) {
+          successfulImageIds.push(image._id);
+          return;
+        }
+
+        const result = await deleteFromCloudinary(image.publicId);
+        if (result && (result.result === "ok" || result.result === "not found")) {
+          successfulImageIds.push(image._id);
+        } else {
+          logger.error(
+            { publicId: image.publicId, result },
+            "Cloudinary deletion failed or returned non-success result",
+          );
+        }
+      } catch (cloudinaryError) {
+        logger.error(
+          { publicId: image.publicId, cloudinaryError },
+          "Failed to delete image from Cloudinary",
+        );
+      }
+    }),
+  );
+
+  if (successfulImageIds.length > 0) {
+    try {
+      await NoteImage.deleteMany({ _id: { $in: successfulImageIds } });
+    } catch (error) {
+      logger.error(
+        { noteId, error },
+        "Database error while deleting associated note image records after Cloudinary cleanup",
+      );
+      throw new ApiError(
+        500,
+        "Failed to delete associated note image records from database",
+      );
+    }
+  }
+
+  if (successfulImageIds.length < associatedImages.length) {
+    logger.error(
+      {
+        noteId,
+        totalImages: associatedImages.length,
+        successfulDeletions: successfulImageIds.length,
+      },
+      "Failed to clean up all associated note images from Cloudinary",
+    );
+    throw new ApiError(
+      500,
+      "Failed to clean up all associated note images",
+    );
+  }
+};
+
+
 const createNote = asyncHandler(async (req, res) => {
   const { title, content } = req.body;
 
@@ -47,11 +121,7 @@ const createNote = asyncHandler(async (req, res) => {
   }
 });
 
-/**
- * @desc    Get all notes for logged-in user with pagination and optional search
- * @route   GET /api/v1/notes
- * @access  Private (Protected with verifyJWT)
- */
+
 const getUserNotes = asyncHandler(async (req, res) => {
   const {
     search,
@@ -118,11 +188,7 @@ const getUserNotes = asyncHandler(async (req, res) => {
   }
 });
 
-/**
- * @desc    Get a single note by ID
- * @route   GET /api/v1/notes/:noteId
- * @access  Private (Protected with verifyJWT)
- */
+
 const getNoteById = asyncHandler(async (req, res) => {
   const { noteId } = req.params;
 
@@ -154,11 +220,7 @@ const getNoteById = asyncHandler(async (req, res) => {
   }
 });
 
-/**
- * @desc    Update/Edit an existing note
- * @route   PATCH /api/v1/notes/:noteId
- * @access  Private (Protected with verifyJWT)
- */
+
 const updateNote = asyncHandler(async (req, res) => {
   const { noteId } = req.params;
   const { title, content, revision, version } = req.body;
@@ -234,7 +296,7 @@ const updateNote = asyncHandler(async (req, res) => {
     const updatedNote = await Note.findOneAndUpdate(
       query,
       { $set: updateFields },
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     );
 
     if (!updatedNote) {
@@ -257,11 +319,7 @@ const updateNote = asyncHandler(async (req, res) => {
   }
 });
 
-/**
- * @desc    Delete a note
- * @route   DELETE /api/v1/notes/:noteId
- * @access  Private (Protected with verifyJWT)
- */
+
 const deleteNote = asyncHandler(async (req, res) => {
   const { noteId } = req.params;
 
@@ -269,76 +327,25 @@ const deleteNote = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid note ID");
   }
 
-  try {
-    const note = await Note.findById(noteId);
+  const note = await Note.findById(noteId);
 
-    if (!note) {
-      throw new ApiError(404, "Note not found");
-    }
-
-    if (note.owner.toString() !== req.user?._id.toString()) {
-      throw new ApiError(403, "You are not authorized to delete this note");
-    }
-
-    const associatedImages = await NoteImage.find({ note: noteId });
-
-    if (associatedImages.length > 0) {
-      const successfulImageIds = [];
-
-      await Promise.allSettled(
-        associatedImages.map(async (image) => {
-          try {
-            if (image.publicId) {
-              const result = await deleteFromCloudinary(image.publicId);
-              if (
-                result &&
-                (result.result === "ok" || result.result === "not found")
-              ) {
-                successfulImageIds.push(image._id);
-              } else {
-                console.error(
-                  `Cloudinary deletion failed or returned non-success result for image ${image.publicId}:`,
-                  result,
-                );
-              }
-            } else {
-              successfulImageIds.push(image._id);
-            }
-          } catch (cloudinaryError) {
-            console.error(
-              `Failed to delete image ${image.publicId} from Cloudinary:`,
-              cloudinaryError,
-            );
-          }
-        }),
-      );
-
-      if (successfulImageIds.length > 0) {
-        await NoteImage.deleteMany({ _id: { $in: successfulImageIds } });
-      }
-    }
-
-    await Note.findByIdAndDelete(noteId);
-
-    return res
-      .status(200)
-      .json(new ApiResponse(200, {}, "Note deleted successfully"));
-  } catch (error) {
-    throw error instanceof ApiError
-      ? error
-      : new ApiError(
-          500,
-          error?.message || "Something went wrong while deleting the note",
-        );
+  if (!note) {
+    throw new ApiError(404, "Note not found");
   }
+
+  if (note.owner.toString() !== req.user?._id.toString()) {
+    throw new ApiError(403, "You are not authorized to delete this note");
+  }
+
+  await cleanupAssociatedNoteImages(noteId);
+  await Note.findByIdAndDelete(noteId);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Note deleted successfully"));
 });
 
-/**
- * @desc    Upload an image inline for rich text editor (Notion-like)
- *          Saves temporarily via Multer -> Uploads to Cloudinary -> Deletes local temp file
- * @route   POST /api/v1/notes/upload-image
- * @access  Private (Protected with verifyJWT, upload.single("image"))
- */
+
 
 const uploadNoteImage = asyncHandler(async (req, res) => {
   const localFilePath = req.file?.path;
@@ -391,11 +398,7 @@ const uploadNoteImage = asyncHandler(async (req, res) => {
   }
 });
 
-/**
- * @desc    Delete an image from Cloudinary (optional cleanup when removed from rich text)
- * @route   DELETE /api/v1/notes/delete-image
- * @access  Private (Protected with verifyJWT)
- */
+
 const deleteNoteImage = asyncHandler(async (req, res) => {
   const { publicId } = req.body;
 

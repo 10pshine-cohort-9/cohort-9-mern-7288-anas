@@ -2,15 +2,63 @@ import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import logger from "./utils/logger.js";
 
 dotenv.config();
 
 const app = express();
+
+// Security HTTP Headers
+app.use(helmet());
+
 import Stripe from "stripe";
 
 import { User } from "./models/user.model.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+const processSuccessfulSubscription = async (session) => {
+  const userEmail = session.customer_details?.email;
+  if (!userEmail) return;
+
+  const purchasedPlan = session.metadata?.plan || "Pro Creator";
+  const stripeCustomerId =
+    typeof session.customer === "string"
+      ? session.customer
+      : session.customer?.id;
+
+  logger.info({ userEmail, purchasedPlan }, "Stripe payment successful");
+
+  try {
+    const updatedUser = await User.findOneAndUpdate(
+      { email: userEmail.toLowerCase() },
+      {
+        $set: {
+          subscriptionPlan: purchasedPlan,
+          ...(stripeCustomerId ? { stripeCustomerId } : {}),
+        },
+      },
+      { returnDocument: "after" },
+    );
+
+    if (!updatedUser) {
+      logger.warn({ userEmail }, "Webhook Warning: User not found in database");
+      return;
+    }
+
+    logger.info(
+      { userEmail, purchasedPlan },
+      "Subscription plan updated for user",
+    );
+  } catch (dbErr) {
+    logger.error(
+      { err: dbErr },
+      "Error updating user subscription in database",
+    );
+    throw dbErr;
+  }
+};
 
 app.post(
   "/api/stripe/webhook",
@@ -26,67 +74,27 @@ app.post(
         process.env.STRIPE_WEBHOOK_SECRET,
       );
     } catch (err) {
-      console.error(`❌ Webhook Error: ${err.message}`);
+      logger.error(`Webhook Error: ${err.message}`);
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object;
-      const userEmail = session.customer_details?.email;
-      const purchasedPlan = session.metadata?.plan || "Pro Creator";
-      const stripeCustomerId =
-        typeof session.customer === "string"
-          ? session.customer
-          : session.customer?.id;
-
-      console.log(
-        "💰 Payment successful for:",
-        userEmail,
-        "Plan:",
-        purchasedPlan,
-      );
-
-      if (userEmail) {
-        try {
-          const updatedUser = await User.findOneAndUpdate(
-            { email: userEmail.toLowerCase() },
-            {
-              $set: {
-                subscriptionPlan: purchasedPlan,
-                ...(stripeCustomerId ? { stripeCustomerId } : {}),
-              },
-            },
-            { new: true },
-          );
-
-          if (updatedUser) {
-            console.log(
-              `✅ Subscription plan updated to "${purchasedPlan}" for user: ${userEmail}`,
-            );
-          } else {
-            console.warn(
-              `⚠️ Webhook Warning: User with email "${userEmail}" not found in database.`,
-            );
-          }
-        } catch (dbErr) {
-          console.error(
-            `❌ Error updating user subscription in database: ${dbErr.message}`,
-          );
-        }
+    try {
+      if (event.type === "checkout.session.completed") {
+        await processSuccessfulSubscription(event.data.object);
       }
+    } catch (error) {
+      logger.error({ err: error }, "Webhook processing failed");
+      return res.status(500).json({ received: false });
     }
 
-    res.json({ received: true });
+    return res.json({ received: true });
   },
 );
-
-
 
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
-
 
 app.use(
   cors({

@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { axiosInstance } from "../api/axios";
 
-
 export const fetchNotes = createAsyncThunk(
   "notes/fetchNotes",
   async (params = {}, thunkAPI) => {
@@ -14,10 +13,10 @@ export const fetchNotes = createAsyncThunk(
       return data?.notes || [];
     } catch (error) {
       return thunkAPI.rejectWithValue(
-        error.response?.data?.message || "Failed to fetch notes"
+        error.response?.data?.message || "Failed to fetch notes",
       );
     }
-  }
+  },
 );
 
 export const createNote = createAsyncThunk(
@@ -32,12 +31,11 @@ export const createNote = createAsyncThunk(
       return response.data?.data;
     } catch (error) {
       return thunkAPI.rejectWithValue(
-        error.response?.data?.message || "Failed to create note"
+        error.response?.data?.message || "Failed to create note",
       );
     }
-  }
+  },
 );
-
 
 export const deleteNote = createAsyncThunk(
   "notes/deleteNote",
@@ -47,12 +45,11 @@ export const deleteNote = createAsyncThunk(
       return noteId;
     } catch (error) {
       return thunkAPI.rejectWithValue(
-        error.response?.data?.message || "Failed to delete note"
+        error.response?.data?.message || "Failed to delete note",
       );
     }
-  }
+  },
 );
-
 
 export const fetchNoteById = createAsyncThunk(
   "notes/fetchNoteById",
@@ -62,10 +59,10 @@ export const fetchNoteById = createAsyncThunk(
       return response.data?.data;
     } catch (error) {
       return thunkAPI.rejectWithValue(
-        error.response?.data?.message || "Failed to fetch note"
+        error.response?.data?.message || "Failed to fetch note",
       );
     }
-  }
+  },
 );
 
 const updateQueues = new Map();
@@ -82,7 +79,7 @@ export const updateNote = createAsyncThunk(
 
     updateQueues.set(
       noteId,
-      priorPromise.then(() => currentPromise).catch(() => currentPromise)
+      priorPromise.then(() => currentPromise).catch(() => currentPromise),
     );
 
     let revToSend;
@@ -124,7 +121,7 @@ export const updateNote = createAsyncThunk(
     } finally {
       resolveCurrent();
     }
-  }
+  },
 );
 
 export const deleteNoteImage = createAsyncThunk(
@@ -137,16 +134,16 @@ export const deleteNoteImage = createAsyncThunk(
       return { publicId, data: response.data?.data };
     } catch (error) {
       return thunkAPI.rejectWithValue(
-        error.response?.data?.message || "Failed to delete image"
+        error.response?.data?.message || "Failed to delete image",
       );
     }
-  }
+  },
 );
 
 const initialState = {
   notes: [],
   activeNote: null,
-  latestDispatchedRevision: {}, // Map of noteId -> latest dispatched revision
+  latestDispatchedRevision: {},
   isLoading: false,
   isCreating: false,
   isSaving: false,
@@ -163,7 +160,7 @@ const notesSlice = createSlice({
         const rev = action.payload.version ?? action.payload.revision ?? 1;
         state.latestDispatchedRevision[action.payload._id] = Math.max(
           state.latestDispatchedRevision[action.payload._id] || 0,
-          Number(rev)
+          Number(rev),
         );
       }
     },
@@ -178,14 +175,14 @@ const notesSlice = createSlice({
       if (noteId && revision !== undefined && revision !== null) {
         state.latestDispatchedRevision[noteId] = Math.max(
           state.latestDispatchedRevision[noteId] || 0,
-          Number(revision)
+          Number(revision),
         );
       }
     },
   },
   extraReducers: (builder) => {
     builder
-     
+
       .addCase(fetchNotes.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -199,7 +196,7 @@ const notesSlice = createSlice({
               const rev = note.version ?? note.revision ?? 1;
               state.latestDispatchedRevision[note._id] = Math.max(
                 state.latestDispatchedRevision[note._id] || 0,
-                Number(rev)
+                Number(rev),
               );
             }
           });
@@ -211,7 +208,6 @@ const notesSlice = createSlice({
         state.error = action.payload;
       })
 
-    
       .addCase(createNote.pending, (state) => {
         state.isCreating = true;
         state.error = null;
@@ -231,7 +227,6 @@ const notesSlice = createSlice({
         state.error = action.payload;
       })
 
-     
       .addCase(deleteNote.fulfilled, (state, action) => {
         state.notes = state.notes.filter((note) => note._id !== action.payload);
         if (state.activeNote?._id === action.payload) {
@@ -246,7 +241,6 @@ const notesSlice = createSlice({
         state.error = action.payload;
       })
 
-      // Fetch Note By ID
       .addCase(fetchNoteById.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -255,21 +249,21 @@ const notesSlice = createSlice({
         state.isLoading = false;
         if (action.payload?._id) {
           const fetchedRev = Number(
-            action.payload.version ?? action.payload.revision ?? 1
+            action.payload.version ?? action.payload.revision ?? 1,
           );
           const currentDispatched =
             state.latestDispatchedRevision[action.payload._id] || 0;
           state.latestDispatchedRevision[action.payload._id] = Math.max(
             currentDispatched,
-            fetchedRev
+            fetchedRev,
           );
 
-          const index = state.notes.findIndex((n) => n._id === action.payload._id);
+          const index = state.notes.findIndex(
+            (n) => n._id === action.payload._id,
+          );
           const isMissingLocally =
             index === -1 && state.activeNote?._id !== action.payload._id;
 
-          // Always adopt the note when it is absent locally. Otherwise keep
-          // newer local data that an in-flight save already advanced.
           if (isMissingLocally || fetchedRev >= currentDispatched) {
             state.activeNote = action.payload;
             if (index === -1) {
@@ -286,7 +280,6 @@ const notesSlice = createSlice({
         state.error = action.payload;
       })
 
-      // Update Note
       .addCase(updateNote.pending, (state, action) => {
         const noteId = action.meta?.arg?.noteId;
         const dispatchedRev =
@@ -294,7 +287,7 @@ const notesSlice = createSlice({
         if (noteId && dispatchedRev !== undefined && dispatchedRev !== null) {
           state.latestDispatchedRevision[noteId] = Math.max(
             state.latestDispatchedRevision[noteId] || 0,
-            Number(dispatchedRev)
+            Number(dispatchedRev),
           );
         }
         state.isSaving = true;
@@ -313,7 +306,7 @@ const notesSlice = createSlice({
             action.payload?.revision ??
             action.meta?.arg?.revision ??
             action.meta?.arg?.version ??
-            0
+            0,
         );
 
         const latestDispatched = state.latestDispatchedRevision[noteId] || 0;
@@ -321,17 +314,18 @@ const notesSlice = createSlice({
           state.activeNote?._id === noteId
             ? Number(state.activeNote.version ?? state.activeNote.revision ?? 0)
             : 0;
-        const existingNoteIndex = state.notes.findIndex((n) => n._id === noteId);
+        const existingNoteIndex = state.notes.findIndex(
+          (n) => n._id === noteId,
+        );
         const currentListRev =
           existingNoteIndex !== -1
             ? Number(
                 state.notes[existingNoteIndex].version ??
                   state.notes[existingNoteIndex].revision ??
-                  0
+                  0,
               )
             : 0;
 
-        // Ignore fulfillment actions older than latest dispatched revision or existing state revision
         if (
           fulfilledRevision < latestDispatched ||
           fulfilledRevision < currentActiveRev ||
@@ -340,12 +334,10 @@ const notesSlice = createSlice({
           return;
         }
 
-        // Apply update to activeNote
         if (state.activeNote?._id === noteId) {
           state.activeNote = action.payload;
         }
 
-        // Apply update to notes array
         if (existingNoteIndex !== -1) {
           state.notes[existingNoteIndex] = action.payload;
         } else {
@@ -354,7 +346,7 @@ const notesSlice = createSlice({
 
         state.latestDispatchedRevision[noteId] = Math.max(
           state.latestDispatchedRevision[noteId] || 0,
-          fulfilledRevision
+          fulfilledRevision,
         );
         state.error = null;
       })
@@ -365,24 +357,22 @@ const notesSlice = createSlice({
           action.payload?.revision ??
             action.meta?.arg?.revision ??
             action.meta?.arg?.version ??
-            0
+            0,
         );
         const latestDispatched = noteId
           ? state.latestDispatchedRevision[noteId] || 0
           : 0;
 
-        // Ignore rejection errors if this action was older than the latest dispatched revision
         if (noteId && rejectedRev < latestDispatched) {
           return;
         }
 
-        // Roll back latestDispatchedRevision to the last known confirmed revision in state
         if (noteId) {
           const noteInState =
             state.notes.find((n) => n._id === noteId) ||
             (state.activeNote?._id === noteId ? state.activeNote : null);
           const confirmedRev = Number(
-            noteInState?.version ?? noteInState?.revision ?? 0
+            noteInState?.version ?? noteInState?.revision ?? 0,
           );
           state.latestDispatchedRevision[noteId] = confirmedRev;
         }
@@ -396,5 +386,10 @@ const notesSlice = createSlice({
   },
 });
 
-export const { setActiveNote, clearActiveNote, clearNotesError, reserveRevision } = notesSlice.actions;
+export const {
+  setActiveNote,
+  clearActiveNote,
+  clearNotesError,
+  reserveRevision,
+} = notesSlice.actions;
 export default notesSlice.reducer;
