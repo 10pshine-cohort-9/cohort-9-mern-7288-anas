@@ -10,6 +10,51 @@ import {
 } from "../store/notesSlice.js";
 import axiosInstance from "../utils/axiosInstance.js";
 
+/**
+ * Custom hook to debounce state updates for autosave
+ */
+function useDebounce(value, delay = 1000) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+/**
+ * Helper to check if note HTML content is functionally empty.
+ * Returns true if content contains no images and text stripped of tags is empty.
+ */
+const isContentEmpty = (html) => {
+  if (!html || typeof html !== "string") return true;
+  if (/<img[^>]*>/i.test(html)) return false;
+  const cleanText = html
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .trim();
+  return cleanText.length === 0;
+};
+
+/**
+ * Helper to strictly compare content strings, accounting for empty HTML tags.
+ */
+const isSameContent = (c1, c2) => {
+  if (c1 === c2) return true;
+  if (isContentEmpty(c1) && isContentEmpty(c2)) return true;
+  return false;
+};
+
+/**
+ * Stable format configuration defined outside component render function
+ */
 const quillFormats = [
   "header",
   "bold",
@@ -27,7 +72,6 @@ const quillFormats = [
 
 /**
  * Extract Cloudinary publicId from a given image URL
- * Preserves folder paths (e.g. notes/user1/img) and handles optional version/transformations
  */
 const extractCloudinaryPublicId = (url) => {
   if (!url || typeof url !== "string") return null;
@@ -90,33 +134,6 @@ const getImageUrlsMap = (html) => {
   return map;
 };
 
-const transformPosition = (pos, delta) => {
-  if (pos === null || pos === undefined || !delta || !Array.isArray(delta.ops)) {
-    return pos;
-  }
-  let oldPos = 0;
-  let newPos = 0;
-  for (const op of delta.ops) {
-    if (oldPos > pos) break;
-    if (op.retain) {
-      oldPos += op.retain;
-      newPos += op.retain;
-    } else if (op.insert) {
-      const len = typeof op.insert === "string" ? op.insert.length : 1;
-      if (oldPos <= pos) {
-        newPos += len;
-      }
-    } else if (op.delete) {
-      if (oldPos < pos) {
-        const delBefore = Math.min(op.delete, pos - oldPos);
-        newPos -= delBefore;
-      }
-      oldPos += op.delete;
-    }
-  }
-  return newPos;
-};
-
 const NoteEditorForm = ({ note }) => {
   const dispatch = useDispatch();
 
@@ -133,15 +150,19 @@ const NoteEditorForm = ({ note }) => {
 
   const [isAiAutocompleteEnabled, setIsAiAutocompleteEnabled] = useState(true);
   const [suggestion, setSuggestion] = useState("");
+  const [suggestionBounds, setSuggestionBounds] = useState(null);
   const [cursorPosition, setCursorPosition] = useState(null);
 
   const quillRef = useRef(null);
-  const debounceTimerRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
   const titleRef = useRef(title);
   const contentRef = useRef(content);
   const saveRequestIdRef = useRef(0);
+
+  const noteIdRef = useRef(note?._id);
+  const lastSavedTitleRef = useRef(note?.title || "");
+  const lastSavedContentRef = useRef(note?.content || "");
 
   const currentImagesRef = useRef(getImageUrlsMap(note?.content || ""));
   const savedImagesRef = useRef(getImageUrlsMap(note?.content || ""));
@@ -149,6 +170,10 @@ const NoteEditorForm = ({ note }) => {
 
   const suggestionRef = useRef(suggestion);
   const cursorPositionRef = useRef(cursorPosition);
+
+  // Debounce title and content for autosave
+  const debouncedTitle = useDebounce(title, 1000);
+  const debouncedContent = useDebounce(content, 1000);
 
   useEffect(() => {
     suggestionRef.current = suggestion;
@@ -167,11 +192,15 @@ const NoteEditorForm = ({ note }) => {
   }, [content]);
 
   useEffect(() => {
+    noteIdRef.current = note?._id;
+  }, [note?._id]);
+
+  useEffect(() => {
     if (note?.content) {
       currentImagesRef.current = getImageUrlsMap(note.content);
       savedImagesRef.current = getImageUrlsMap(note.content);
     }
-  }, [note]);
+  }, [note?.content]);
 
   const showErrorToast = useCallback((message, duration = 5000) => {
     if (toastTimeoutRef.current) {
@@ -184,6 +213,11 @@ const NoteEditorForm = ({ note }) => {
       }, duration);
     }
   }, []);
+
+  const showErrorToastRef = useRef(showErrorToast);
+  useEffect(() => {
+    showErrorToastRef.current = showErrorToast;
+  }, [showErrorToast]);
 
   const getSafeEditor = useCallback(() => {
     try {
@@ -200,62 +234,36 @@ const NoteEditorForm = ({ note }) => {
     return null;
   }, []);
 
-  const injectGhostText = useCallback(
-    (text, position) => {
-      const editor = getSafeEditor();
-      if (!editor || position === null || position === undefined) return;
-      editor.insertText(position, text, { color: "#9ca3af" }, "silent");
-      editor.setSelection(position, 0, "silent");
-    },
-    [getSafeEditor],
-  );
+  const getSafeEditorRef = useRef(getSafeEditor);
+  useEffect(() => {
+    getSafeEditorRef.current = getSafeEditor;
+  }, [getSafeEditor]);
 
-  const clearGhostText = useCallback(
-    (delta = null) => {
-      const currentSugg = suggestionRef.current;
-      const currentPos = cursorPositionRef.current;
+  const clearSuggestion = useCallback(() => {
+    setSuggestion("");
+    setSuggestionBounds(null);
+    setCursorPosition(null);
+    suggestionRef.current = "";
+    cursorPositionRef.current = null;
+  }, []);
 
-      if (currentSugg && currentPos !== null) {
-        const editor = getSafeEditor();
-        if (editor) {
-          try {
-            const targetPos = transformPosition(currentPos, delta);
-            const suggLen = currentSugg.length;
+  const acceptAiSuggestion = useCallback(() => {
+    const currentSuggestion = suggestionRef.current;
+    const cursorPos = cursorPositionRef.current;
+    const editor = getSafeEditor();
 
-            let actualPos = targetPos;
-            if (editor.getText(targetPos, suggLen) !== currentSugg) {
-              const fullText = editor.getText();
-              const searchStart = Math.max(0, targetPos - 50);
-              const foundIdx = fullText.indexOf(currentSugg, searchStart);
-              if (foundIdx !== -1) {
-                actualPos = foundIdx;
-              } else {
-                const fallbackIdx = fullText.indexOf(currentSugg);
-                if (fallbackIdx !== -1) {
-                  actualPos = fallbackIdx;
-                }
-              }
-            }
+    if (currentSuggestion && cursorPos !== null && editor) {
+      editor.insertText(cursorPos, currentSuggestion, "user");
+      editor.setSelection(cursorPos + currentSuggestion.length, 0, "user");
 
-            if (
-              actualPos !== -1 &&
-              editor.getText(actualPos, suggLen) === currentSugg
-            ) {
-              editor.deleteText(actualPos, suggLen, "silent");
-            }
-          } catch (err) {
-            console.error("Failed to delete ghost text:", err);
-          }
-        }
-      }
+      const newContent = editor.root.innerHTML;
+      contentRef.current = newContent;
+      setContent(newContent);
+      setSaveStatus("unsaved");
 
-      setSuggestion("");
-      setCursorPosition(null);
-      suggestionRef.current = "";
-      cursorPositionRef.current = null;
-    },
-    [getSafeEditor],
-  );
+      clearSuggestion();
+    }
+  }, [getSafeEditor, clearSuggestion]);
 
   const handleToggleAiAutocomplete = useCallback(() => {
     setIsAiAutocompleteEnabled((prev) => {
@@ -264,15 +272,35 @@ const NoteEditorForm = ({ note }) => {
         if (typingTimeoutRef.current) {
           clearTimeout(typingTimeoutRef.current);
         }
-        clearGhostText();
+        clearSuggestion();
       }
       return nextState;
     });
-  }, [clearGhostText]);
+  }, [clearSuggestion]);
 
+  const handleEditorKeyDownCapture = useCallback(
+    (e) => {
+      const isSuggestionActive = Boolean(suggestionRef.current);
+
+      if (e.key === "Escape" && isSuggestionActive) {
+        clearSuggestion();
+        return;
+      }
+
+      if (e.key === "Tab" && isSuggestionActive) {
+        e.preventDefault();
+        e.stopPropagation();
+        acceptAiSuggestion();
+      }
+    },
+    [acceptAiSuggestion, clearSuggestion],
+  );
+
+  // Saves note content with guard clauses for empty/identical content
   const performSave = useCallback(
     async (overrideTitle, overrideContent) => {
-      if (!note?._id) return;
+      const noteId = noteIdRef.current;
+      if (!noteId) return;
 
       const titleToSave =
         (overrideTitle !== undefined
@@ -284,21 +312,34 @@ const NoteEditorForm = ({ note }) => {
           ? overrideContent
           : (contentRef.current ?? "");
 
-      const requestId = ++saveRequestIdRef.current;
+      // Guard Clause: skip network request if title and content are unchanged from last saved state
+      const isTitleUnchanged = titleToSave === lastSavedTitleRef.current;
+      const isContentUnchanged = isSameContent(
+        contentToSave,
+        lastSavedContentRef.current,
+      );
 
+      if (isTitleUnchanged && isContentUnchanged) {
+        setSaveStatus("saved");
+        return;
+      }
+
+      const requestId = ++saveRequestIdRef.current;
       setSaveStatus("saving");
+
       try {
         await dispatch(
           updateNote({
-            noteId: note._id,
+            noteId,
             title: titleToSave,
             content: contentToSave,
           }),
         ).unwrap();
 
-        if (saveRequestIdRef.current !== requestId) {
-          return;
-        }
+        if (saveRequestIdRef.current !== requestId) return;
+
+        lastSavedTitleRef.current = titleToSave;
+        lastSavedContentRef.current = contentToSave;
 
         const savedMap = getImageUrlsMap(contentToSave);
         for (const [oldUrl] of savedImagesRef.current) {
@@ -329,19 +370,36 @@ const NoteEditorForm = ({ note }) => {
         }
       }
     },
-    [dispatch, note],
+    [dispatch],
   );
 
-  const performSaveRef = useRef(null);
+  const performSaveRef = useRef(performSave);
   useEffect(() => {
     performSaveRef.current = performSave;
   }, [performSave]);
 
+  // Refactored autosave useEffect strictly comparing debounced values to last saved values
+  useEffect(() => {
+    const isTitleUnchanged = debouncedTitle === lastSavedTitleRef.current;
+    const isContentUnchanged = isSameContent(
+      debouncedContent,
+      lastSavedContentRef.current,
+    );
+
+    if (!isTitleUnchanged || !isContentUnchanged) {
+      performSave(debouncedTitle, debouncedContent);
+    }
+  }, [debouncedTitle, debouncedContent, performSave]);
+
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-        debounceTimerRef.current = null;
+      const isTitleUnchanged = titleRef.current === lastSavedTitleRef.current;
+      const isContentUnchanged = isSameContent(
+        contentRef.current,
+        lastSavedContentRef.current,
+      );
+      if (!isTitleUnchanged || !isContentUnchanged) {
         performSaveRef.current?.(titleRef.current, contentRef.current);
       }
       if (toastTimeoutRef.current) {
@@ -366,49 +424,43 @@ const NoteEditorForm = ({ note }) => {
     };
   }, [saveStatus]);
 
-  const triggerDebouncedSave = useCallback(
-    (newTitle, newContent) => {
-      setSaveStatus("unsaved");
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-      debounceTimerRef.current = setTimeout(() => {
-        performSave(newTitle, newContent);
-      }, 1000);
-    },
-    [performSave],
-  );
-
   const handleTitleChange = (e) => {
     const newTitle = e.target.value;
     titleRef.current = newTitle;
     setTitle(newTitle);
-    triggerDebouncedSave(newTitle, contentRef.current);
+    const isTitleUnchanged = newTitle === lastSavedTitleRef.current;
+    const isContentUnchanged = isSameContent(
+      contentRef.current,
+      lastSavedContentRef.current,
+    );
+    if (!isTitleUnchanged || !isContentUnchanged) {
+      setSaveStatus("unsaved");
+    }
   };
 
   const handleContentChange = useCallback(
     (value, delta, source) => {
-      const editor = getSafeEditor();
-
-      if (
-        source === "user" &&
-        suggestionRef.current &&
-        cursorPositionRef.current !== null
-      ) {
-        clearGhostText(delta);
-      } else if (source !== "user" && suggestionRef.current) {
-        return;
+      if (suggestionRef.current) {
+        clearSuggestion();
       }
-
-      const updatedValue = editor ? editor.root.innerHTML : value;
+      // Use value directly from ReactQuill instead of editor.root.innerHTML
+      const updatedValue = value;
       const newImagesMap = getImageUrlsMap(updatedValue);
       currentImagesRef.current = newImagesMap;
       contentRef.current = updatedValue;
       setContent(updatedValue);
-      triggerDebouncedSave(titleRef.current, updatedValue);
+
+      const isTitleUnchanged = titleRef.current === lastSavedTitleRef.current;
+      const isContentUnchanged = isSameContent(
+        updatedValue,
+        lastSavedContentRef.current,
+      );
+      if (!isTitleUnchanged || !isContentUnchanged) {
+        setSaveStatus("unsaved");
+      }
 
       if (source !== "user" || !isAiAutocompleteEnabled) return;
-
+      const editor = getSafeEditor();
       if (!editor) return;
 
       if (typingTimeoutRef.current) {
@@ -442,30 +494,33 @@ const NoteEditorForm = ({ note }) => {
             typeof suggestionText === "string" &&
             suggestionText.trim()
           ) {
+            const selection = currentQuill.getSelection();
+            const activeIndex = selection ? selection.index : currentPosition;
+            const bounds = currentQuill.getBounds(activeIndex);
+            const containerTop = currentQuill.container?.offsetTop || 0;
+            const containerLeft = currentQuill.container?.offsetLeft || 0;
+
+            const calculatedBounds = {
+              ...bounds,
+              top: bounds.top + containerTop,
+              left: bounds.left + containerLeft,
+            };
+
             setSuggestion(suggestionText);
-            setCursorPosition(currentPosition);
+            setSuggestionBounds(calculatedBounds);
+            setCursorPosition(activeIndex);
             suggestionRef.current = suggestionText;
-            cursorPositionRef.current = currentPosition;
-            injectGhostText(suggestionText, currentPosition);
+            cursorPositionRef.current = activeIndex;
           }
         } catch (error) {
           console.error("AI Autocomplete fetch error:", error);
         }
       }, 1000);
     },
-    [
-      triggerDebouncedSave,
-      isAiAutocompleteEnabled,
-      clearGhostText,
-      injectGhostText,
-      getSafeEditor,
-    ],
+    [isAiAutocompleteEnabled, clearSuggestion, getSafeEditor],
   );
 
   const handleManualSave = useCallback(() => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
     performSave(titleRef.current, contentRef.current);
   }, [performSave]);
 
@@ -483,9 +538,13 @@ const NoteEditorForm = ({ note }) => {
     };
   }, [handleManualSave]);
 
+  // Image handler with empty dependency array using refs to prevent module re-creation
   const imageHandler = useCallback(() => {
-    if (!note?._id) {
-      showErrorToast("Cannot upload image: Note is not loaded yet");
+    const noteId = noteIdRef.current;
+    if (!noteId) {
+      showErrorToastRef.current?.(
+        "Cannot upload image: Note is not loaded yet",
+      );
       return;
     }
 
@@ -499,20 +558,20 @@ const NoteEditorForm = ({ note }) => {
       if (!file) return;
 
       if (!file.type.startsWith("image/")) {
-        showErrorToast(
+        showErrorToastRef.current?.(
           "Please select a valid image file (PNG, JPEG, WebP, GIF, etc.)",
         );
         return;
       }
 
       if (file.size > 10 * 1024 * 1024) {
-        showErrorToast("Image size exceeds 10MB limit");
+        showErrorToastRef.current?.("Image size exceeds 10MB limit");
         return;
       }
 
       const formData = new FormData();
       formData.append("image", file);
-      formData.append("noteId", note._id);
+      formData.append("noteId", noteId);
 
       setIsUploadingImage(true);
 
@@ -539,7 +598,7 @@ const NoteEditorForm = ({ note }) => {
           urlToPublicIdRef.current.set(uploadedUrl, publicId);
         }
 
-        const editor = getSafeEditor();
+        const editor = getSafeEditorRef.current?.();
         if (editor) {
           const range = editor.getSelection(true) || {
             index: editor.getLength(),
@@ -550,8 +609,9 @@ const NoteEditorForm = ({ note }) => {
 
           const updatedHtml = editor.root.innerHTML;
           currentImagesRef.current = getImageUrlsMap(updatedHtml);
+          contentRef.current = updatedHtml;
           setContent(updatedHtml);
-          triggerDebouncedSave(titleRef.current, updatedHtml);
+          setSaveStatus("unsaved");
         }
       } catch (error) {
         console.error("Image upload failed:", error);
@@ -559,13 +619,14 @@ const NoteEditorForm = ({ note }) => {
           error.response?.data?.message ||
           error.message ||
           "Failed to upload image. Please try again.";
-        showErrorToast(errorMessage, 5000);
+        showErrorToastRef.current?.(errorMessage, 5000);
       } finally {
         setIsUploadingImage(false);
       }
     };
-  }, [note, showErrorToast, triggerDebouncedSave, getSafeEditor]);
+  }, []);
 
+  // Memoized modules with stable reference across re-renders
   const modules = useMemo(
     () => ({
       toolbar: {
@@ -591,30 +652,7 @@ const NoteEditorForm = ({ note }) => {
               const cursorPos = cursorPositionRef.current;
 
               if (currentSuggestion && cursorPos !== null) {
-                this.quill.formatText(
-                  cursorPos,
-                  currentSuggestion.length,
-                  "color",
-                  false,
-                  "silent",
-                );
-
-                this.quill.setSelection(
-                  cursorPos + currentSuggestion.length,
-                  0,
-                  "silent",
-                );
-
-                const newContent = this.quill.root.innerHTML;
-                contentRef.current = newContent;
-                setContent(newContent);
-                triggerDebouncedSave(titleRef.current, newContent);
-
-                suggestionRef.current = "";
-                cursorPositionRef.current = null;
-                setSuggestion("");
-                setCursorPosition(null);
-
+                acceptAiSuggestion();
                 return false;
               }
               return true;
@@ -623,7 +661,7 @@ const NoteEditorForm = ({ note }) => {
         },
       },
     }),
-    [imageHandler, triggerDebouncedSave],
+    [imageHandler, acceptAiSuggestion],
   );
 
   const formatTime = (date) => {
@@ -882,7 +920,10 @@ const NoteEditorForm = ({ note }) => {
             />
           </div>
 
-          <div className="notion-quill-wrapper text-slate-700 text-lg leading-relaxed">
+          <div
+            className="relative notion-quill-wrapper text-slate-700 text-lg leading-relaxed"
+            onKeyDownCapture={handleEditorKeyDownCapture}
+          >
             <ReactQuill
               ref={quillRef}
               theme="snow"
@@ -892,6 +933,25 @@ const NoteEditorForm = ({ note }) => {
               formats={quillFormats}
               placeholder="Start typing your note here..."
             />
+            {suggestion && suggestionBounds && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: `${suggestionBounds.left}px`,
+                  top: `${suggestionBounds.top}px`,
+                  pointerEvents: "none",
+                  color: "#9ca3af",
+                  whiteSpace: "pre",
+                  zIndex: 20,
+                }}
+                className="inline-flex items-center text-slate-400 select-none opacity-80"
+              >
+                <span>{suggestion}</span>
+                <span className="ml-2 text-[10px] font-sans font-medium bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400 px-1.5 py-0.5 rounded border border-slate-200 dark:border-zinc-700 shadow-xs">
+                  Tab ↹
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>

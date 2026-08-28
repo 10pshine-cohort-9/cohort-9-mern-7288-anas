@@ -5,12 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "test": "mocha --require dotenv/config --exit"
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.10.0",
     "cookie-parser": "^1.4.7",
@@ -30,5 +32,12 @@
     "rate-limit-redis": "^6.0.1",
     "redis": "^6.2.1",
     "stripe": "^22.5.0"
+  },
+  "devDependencies": {
+    "chai": "^6.2.2",
+    "mocha": "^11.8.0",
+    "nock": "^14.0.17",
+    "sinon": "^22.1.0",
+    "supertest": "^7.2.2"
   }
 }
