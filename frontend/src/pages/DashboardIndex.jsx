@@ -49,6 +49,7 @@ const DashboardIndex = () => {
       </p>
 
       <button
+        type="button"
         onClick={handleCreateNote}
         disabled={isCreating}
         className="inline-flex items-center space-x-2 px-6 py-2.5 text-sm font-semibold rounded-full text-white bg-slate-900 hover:bg-slate-800 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-slate-900/10 transition-all cursor-pointer"
@@ -104,6 +105,7 @@ const DashboardIndex = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {notes.slice(0, 4).map((note) => (
               <button
+                type="button"
                 key={note._id}
                 onClick={() => navigate(`/dashboard/${note._id}`)}
                 className="flex items-start space-x-3 p-4 rounded-xl border border-slate-100 bg-white hover:border-slate-200 shadow-sm hover:shadow-md text-left transition-all group cursor-pointer"

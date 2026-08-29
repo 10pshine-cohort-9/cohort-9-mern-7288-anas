@@ -10,9 +10,6 @@ import {
 } from "../store/notesSlice.js";
 import axiosInstance from "../utils/axiosInstance.js";
 
-/**
- * Custom hook to debounce state updates for autosave
- */
 function useDebounce(value, delay = 1000) {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -29,32 +26,25 @@ function useDebounce(value, delay = 1000) {
   return debouncedValue;
 }
 
-/**
- * Helper to check if note HTML content is functionally empty.
- * Returns true if content contains no images and text stripped of tags is empty.
- */
 const isContentEmpty = (html) => {
   if (!html || typeof html !== "string") return true;
-  if (/<img[^>]*>/i.test(html)) return false;
+
+  if (/<img[^>]+>/i.test(html)) return false;
+
   const cleanText = html
-    .replace(/<[^>]*>/g, "")
+    .replace(/<[^>]+>/g, "")
     .replace(/&nbsp;/gi, " ")
     .trim();
+
   return cleanText.length === 0;
 };
 
-/**
- * Helper to strictly compare content strings, accounting for empty HTML tags.
- */
 const isSameContent = (c1, c2) => {
   if (c1 === c2) return true;
   if (isContentEmpty(c1) && isContentEmpty(c2)) return true;
   return false;
 };
 
-/**
- * Stable format configuration defined outside component render function
- */
 const quillFormats = [
   "header",
   "bold",
@@ -70,9 +60,6 @@ const quillFormats = [
   "image",
 ];
 
-/**
- * Extract Cloudinary publicId from a given image URL
- */
 const extractCloudinaryPublicId = (url) => {
   if (!url || typeof url !== "string") return null;
   if (!url.includes("cloudinary.com")) return null;
@@ -117,9 +104,6 @@ const extractCloudinaryPublicId = (url) => {
   }
 };
 
-/**
- * Parses an HTML string and returns a Map of image URL -> occurrence count
- */
 const getImageUrlsMap = (html) => {
   const map = new Map();
   if (!html || typeof html !== "string") return map;
@@ -171,7 +155,6 @@ const NoteEditorForm = ({ note }) => {
   const suggestionRef = useRef(suggestion);
   const cursorPositionRef = useRef(cursorPosition);
 
-  // Debounce title and content for autosave
   const debouncedTitle = useDebounce(title, 1000);
   const debouncedContent = useDebounce(content, 1000);
 
@@ -296,7 +279,6 @@ const NoteEditorForm = ({ note }) => {
     [acceptAiSuggestion, clearSuggestion],
   );
 
-  // Saves note content with guard clauses for empty/identical content
   const performSave = useCallback(
     async (overrideTitle, overrideContent) => {
       const noteId = noteIdRef.current;
@@ -312,7 +294,6 @@ const NoteEditorForm = ({ note }) => {
           ? overrideContent
           : (contentRef.current ?? "");
 
-      // Guard Clause: skip network request if title and content are unchanged from last saved state
       const isTitleUnchanged = titleToSave === lastSavedTitleRef.current;
       const isContentUnchanged = isSameContent(
         contentToSave,
@@ -378,7 +359,6 @@ const NoteEditorForm = ({ note }) => {
     performSaveRef.current = performSave;
   }, [performSave]);
 
-  // Refactored autosave useEffect strictly comparing debounced values to last saved values
   useEffect(() => {
     const isTitleUnchanged = debouncedTitle === lastSavedTitleRef.current;
     const isContentUnchanged = isSameContent(
@@ -391,7 +371,6 @@ const NoteEditorForm = ({ note }) => {
     }
   }, [debouncedTitle, debouncedContent, performSave]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       const isTitleUnchanged = titleRef.current === lastSavedTitleRef.current;
@@ -443,7 +422,6 @@ const NoteEditorForm = ({ note }) => {
       if (suggestionRef.current) {
         clearSuggestion();
       }
-      // Use value directly from ReactQuill instead of editor.root.innerHTML
       const updatedValue = value;
       const newImagesMap = getImageUrlsMap(updatedValue);
       currentImagesRef.current = newImagesMap;
@@ -479,7 +457,7 @@ const NoteEditorForm = ({ note }) => {
           const plainText = currentQuill.getText(0, currentPosition);
           const previousText = plainText.slice(-200);
 
-          if (!previousText || !previousText.trim()) return;
+          if (!previousText?.trim()) return;
 
           const response = await axiosInstance.post("/ai/autocomplete", {
             title: titleRef.current,
@@ -538,7 +516,6 @@ const NoteEditorForm = ({ note }) => {
     };
   }, [handleManualSave]);
 
-  // Image handler with empty dependency array using refs to prevent module re-creation
   const imageHandler = useCallback(() => {
     const noteId = noteIdRef.current;
     if (!noteId) {
@@ -626,7 +603,6 @@ const NoteEditorForm = ({ note }) => {
     };
   }, []);
 
-  // Memoized modules with stable reference across re-renders
   const modules = useMemo(
     () => ({
       toolbar: {
@@ -668,295 +644,230 @@ const NoteEditorForm = ({ note }) => {
     if (!date) return "";
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
+  const renderSaveStatusIndicator = () => {
+  if (isUploadingImage) {
+    return (
+      <div className="flex items-center space-x-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+        <svg
+          className="w-3.5 h-3.5 animate-spin"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+        <span>Uploading Image...</span>
+      </div>
+    );
+  }
+
+  if (saveStatus === "saving" || isSaving) {
+    return (
+      <div className="flex items-center space-x-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+        <svg
+          className="w-3.5 h-3.5 animate-spin text-indigo-600 dark:text-indigo-400"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+        <span>Saving...</span>
+      </div>
+    );
+  }
+
+  if (saveStatus === "unsaved") {
+    return (
+      <button
+        type="button"
+        onClick={handleManualSave}
+        title="Save changes now (Ctrl+S)"
+        className="flex items-center space-x-1.5 px-3 py-1 text-xs font-semibold rounded-md bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-all cursor-pointer"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+        </svg>
+        <span>Save</span>
+        <kbd className="hidden sm:inline-block text-[10px] font-mono bg-indigo-700/80 px-1 py-0.2 rounded">
+          Ctrl+S
+        </kbd>
+      </button>
+    );
+  }
+
+  if (saveStatus === "error") {
+    return (
+      <button
+        type="button"
+        onClick={handleManualSave}
+        title="Retry saving note (Ctrl+S)"
+        className="flex items-center space-x-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 hover:bg-red-200 transition-colors cursor-pointer"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>Retry Save</span>
+        <kbd className="hidden sm:inline-block text-[10px] font-mono bg-red-200 dark:bg-red-800/60 px-1 py-0.2 rounded">
+          Ctrl+S
+        </kbd>
+      </button>
+    );
+  }
 
   return (
-    <div className="relative flex flex-col h-full bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-      <div className="sticky top-0 z-10 flex items-center justify-between px-6 sm:px-12 md:px-16 py-2 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-100 dark:border-zinc-800">
-        <div className="flex items-center space-x-2 text-xs text-zinc-400 dark:text-zinc-500">
-          <span className="inline-block w-2 h-2 rounded-full bg-emerald-500/80" />
-          <span>Notion Editor</span>
-          {lastSavedAt && (
-            <>
-              <span>•</span>
-              <span>Saved at {formatTime(lastSavedAt)}</span>
-            </>
-          )}
-        </div>
+    <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-1 text-xs text-zinc-400 dark:text-zinc-500">
+        <svg className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+        </svg>
+        <span>Saved</span>
+      </div>
+      <button
+        type="button"
+        onClick={handleManualSave}
+        title="Save now (Ctrl+S)"
+        className="flex items-center space-x-1 px-2 py-0.5 text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors cursor-pointer"
+      >
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+        </svg>
+        <span>Save</span>
+        <kbd className="hidden sm:inline-block text-[9px] font-mono text-zinc-400 dark:text-zinc-500">
+          Ctrl+S
+        </kbd>
+      </button>
+    </div>
+  );
+};
 
-        <div className="flex items-center space-x-3">
-          <button
-            type="button"
-            onClick={handleToggleAiAutocomplete}
-            title={
-              isAiAutocompleteEnabled
-                ? "Click to disable AI Autocomplete"
-                : "Click to enable AI Autocomplete"
-            }
-            className={`flex items-center space-x-1.5 px-2.5 py-1 text-xs font-medium rounded-full border transition-all cursor-pointer ${
-              isAiAutocompleteEnabled
-                ? "bg-indigo-50/80 text-indigo-600 border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-400 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 shadow-xs"
-                : "bg-zinc-100 text-zinc-400 border-zinc-200 dark:bg-zinc-800/60 dark:text-zinc-500 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-800"
-            }`}
-          >
-            <svg
-              className={`w-3.5 h-3.5 ${
-                isAiAutocompleteEnabled
-                  ? "text-indigo-600 dark:text-indigo-400"
-                  : "text-zinc-400 dark:text-zinc-500"
-              }`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M13 10V3L4 14h7v7l9-11h-7z"
-              />
-            </svg>
-            <span>
-              AI Autocomplete:{" "}
-              <span className="font-bold">
-                {isAiAutocompleteEnabled ? "ON" : "OFF"}
-              </span>
-            </span>
-          </button>
-          {isUploadingImage ? (
-            <div className="flex items-center space-x-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-medium">
-              <svg
-                className="w-3.5 h-3.5 animate-spin"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-              <span>Uploading Image...</span>
-            </div>
-          ) : saveStatus === "saving" || isSaving ? (
-            <div className="flex items-center space-x-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-              <svg
-                className="w-3.5 h-3.5 animate-spin text-indigo-600 dark:text-indigo-400"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-              <span>Saving...</span>
-            </div>
-          ) : saveStatus === "unsaved" ? (
-            <button
-              type="button"
-              onClick={handleManualSave}
-              title="Save changes now (Ctrl+S)"
-              className="flex items-center space-x-1.5 px-3 py-1 text-xs font-semibold rounded-md bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-all cursor-pointer"
-            >
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
-                />
-              </svg>
-              <span>Save</span>
-              <kbd className="hidden sm:inline-block text-[10px] font-mono bg-indigo-700/80 px-1 py-0.2 rounded">
-                Ctrl+S
-              </kbd>
-            </button>
-          ) : saveStatus === "error" ? (
-            <button
-              type="button"
-              onClick={handleManualSave}
-              title="Retry saving note (Ctrl+S)"
-              className="flex items-center space-x-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 hover:bg-red-200 transition-colors cursor-pointer"
-            >
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span>Retry Save</span>
-              <kbd className="hidden sm:inline-block text-[10px] font-mono bg-red-200 dark:bg-red-800/60 px-1 py-0.2 rounded">
-                Ctrl+S
-              </kbd>
-            </button>
-          ) : (
-            <div className="flex items-center space-x-2">
-              <div className="flex items-center space-x-1 text-xs text-zinc-400 dark:text-zinc-500">
-                <svg
-                  className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                <span>Saved</span>
-              </div>
-              <button
-                type="button"
-                onClick={handleManualSave}
-                title="Save now (Ctrl+S)"
-                className="flex items-center space-x-1 px-2 py-0.5 text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors cursor-pointer"
-              >
-                <svg
-                  className="w-3 h-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
-                  />
-                </svg>
-                <span>Save</span>
-                <kbd className="hidden sm:inline-block text-[9px] font-mono text-zinc-400 dark:text-zinc-500">
-                  Ctrl+S
-                </kbd>
-              </button>
-            </div>
-          )}
-        </div>
+  return (
+  <div className="relative flex flex-col h-full bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
+    <div className="sticky top-0 z-10 flex items-center justify-between px-6 sm:px-12 md:px-16 py-2 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-100 dark:border-zinc-800">
+      <div className="flex items-center space-x-2 text-xs text-zinc-400 dark:text-zinc-500">
+        <span className="inline-block w-2 h-2 rounded-full bg-emerald-500/80" />
+        <span>Notion Editor</span>
+        {lastSavedAt && (
+          <>
+            <span>•</span>
+            <span>Saved at {formatTime(lastSavedAt)}</span>
+          </>
+        )}
       </div>
 
-      {errorToast && (
-        <div
-          className="fixed bottom-6 right-6 z-50 flex items-center space-x-2.5 px-4 py-3 rounded-lg shadow-xl text-xs font-medium bg-red-600 text-white border border-red-500 shadow-red-950/20 animate-in fade-in slide-in-from-bottom-2"
-          role="alert"
-          aria-live="assertive"
+      <div className="flex items-center space-x-3">
+        <button
+          type="button"
+          onClick={handleToggleAiAutocomplete}
+          title={
+            isAiAutocompleteEnabled
+              ? "Click to disable AI Autocomplete"
+              : "Click to enable AI Autocomplete"
+          }
+          className={`flex items-center space-x-1.5 px-2.5 py-1 text-xs font-medium rounded-full border transition-all cursor-pointer ${
+            isAiAutocompleteEnabled
+              ? "bg-indigo-50/80 text-indigo-600 border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-400 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 shadow-xs"
+              : "bg-zinc-100 text-zinc-400 border-zinc-200 dark:bg-zinc-800/60 dark:text-zinc-500 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-800"
+          }`}
         >
           <svg
-            className="w-4 h-4 shrink-0 text-white"
+            className={`w-3.5 h-3.5 ${
+              isAiAutocompleteEnabled
+                ? "text-indigo-600 dark:text-indigo-400"
+                : "text-zinc-400 dark:text-zinc-500"
+            }`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
-          <span className="pr-1">{errorToast}</span>
-          <button
-            onClick={() => setErrorToast(null)}
-            className="p-1 hover:bg-white/20 rounded transition-colors cursor-pointer"
-            aria-label="Dismiss error"
-          >
-            <svg
-              className="w-3 h-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+          <span>
+            AI Autocomplete:{" "}
+            <span className="font-bold">
+              {isAiAutocompleteEnabled ? "ON" : "OFF"}
+            </span>
+          </span>
+        </button>
+        
+        {/* The entire save/upload indicator ternary is now handled here */}
+        {renderSaveStatusIndicator()}
+      </div>
+    </div>
+
+    {errorToast && (
+      <div
+        className="fixed bottom-6 right-6 z-50 flex items-center space-x-2.5 px-4 py-3 rounded-lg shadow-xl text-xs font-medium bg-red-600 text-white border border-red-500 shadow-red-950/20 animate-in fade-in slide-in-from-bottom-2"
+        role="alert"
+        aria-live="assertive"
+      >
+        <svg className="w-4 h-4 shrink-0 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span className="pr-1">{errorToast}</span>
+        <button
+          type="button"
+          onClick={() => setErrorToast(null)}
+          className="p-1 hover:bg-white/20 rounded transition-colors cursor-pointer"
+          aria-label="Dismiss error"
+        >
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    )}
+
+    <div className="flex-1 overflow-y-auto bg-white">
+      <div className="max-w-3xl mx-auto w-full pt-10 px-8 pb-32">
+        <div className="mb-6">
+          <input
+            type="text"
+            value={title}
+            onChange={handleTitleChange}
+            placeholder="Untitled Note"
+            className="w-full bg-transparent text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 placeholder-slate-300 border-none outline-none focus:outline-none focus:ring-0 p-0 transition-colors"
+            aria-label="Note title"
+          />
         </div>
-      )}
 
-      <div className="flex-1 overflow-y-auto bg-white">
-        <div className="max-w-3xl mx-auto w-full pt-10 px-8 pb-32">
-          <div className="mb-6">
-            <input
-              type="text"
-              value={title}
-              onChange={handleTitleChange}
-              placeholder="Untitled Note"
-              className="w-full bg-transparent text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 placeholder-slate-300 border-none outline-none focus:outline-none focus:ring-0 p-0 transition-colors"
-              aria-label="Note title"
-            />
-          </div>
-
-          <div
-            className="relative notion-quill-wrapper text-slate-700 text-lg leading-relaxed"
-            onKeyDownCapture={handleEditorKeyDownCapture}
-          >
-            <ReactQuill
-              ref={quillRef}
-              theme="snow"
-              value={content}
-              onChange={handleContentChange}
-              modules={modules}
-              formats={quillFormats}
-              placeholder="Start typing your note here..."
-            />
-            {suggestion && suggestionBounds && (
-              <div
-                style={{
-                  position: "absolute",
-                  left: `${suggestionBounds.left}px`,
-                  top: `${suggestionBounds.top}px`,
-                  pointerEvents: "none",
-                  color: "#9ca3af",
-                  whiteSpace: "pre",
-                  zIndex: 20,
-                }}
-                className="inline-flex items-center text-slate-400 select-none opacity-80"
-              >
-                <span>{suggestion}</span>
-                <span className="ml-2 text-[10px] font-sans font-medium bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400 px-1.5 py-0.5 rounded border border-slate-200 dark:border-zinc-700 shadow-xs">
-                  Tab ↹
-                </span>
-              </div>
-            )}
-          </div>
+        <div
+          className="relative notion-quill-wrapper text-slate-700 text-lg leading-relaxed"
+          onKeyDownCapture={handleEditorKeyDownCapture}
+        >
+          <ReactQuill
+            ref={quillRef}
+            theme="snow"
+            value={content}
+            onChange={handleContentChange}
+            modules={modules}
+            formats={quillFormats}
+            placeholder="Start typing your note here..."
+          />
+          {suggestion && suggestionBounds && (
+            <div
+              style={{
+                position: "absolute",
+                left: `${suggestionBounds.left}px`,
+                top: `${suggestionBounds.top}px`,
+                pointerEvents: "none",
+                color: "#9ca3af",
+                whiteSpace: "pre",
+                zIndex: 20,
+              }}
+              className="inline-flex items-center text-slate-400 select-none opacity-80"
+            >
+              <span>{suggestion}</span>
+              <span className="ml-2 text-[10px] font-sans font-medium bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400 px-1.5 py-0.5 rounded border border-slate-200 dark:border-zinc-700 shadow-xs">
+                Tab ↹
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 const NoteEditor = () => {
@@ -1019,6 +930,7 @@ const NoteEditor = () => {
             "The note you are trying to view does not exist or you do not have permission to access it."}
         </p>
         <button
+          type="button"
           onClick={() => navigate("/dashboard")}
           className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-xs cursor-pointer"
         >

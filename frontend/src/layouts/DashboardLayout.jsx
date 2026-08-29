@@ -80,19 +80,116 @@ const DashboardLayout = () => {
   const userInitial = displayName.charAt(0).toUpperCase();
 
   const activeNote = notes.find((n) => n._id === noteId);
-  const currentTitle =
-    activeNote?.title && activeNote.title.trim() !== ""
-      ? activeNote.title
-      : noteId
-        ? "Untitled"
-        : "Workspace";
+
+  let currentTitle = "Workspace";
+  if (activeNote?.title?.trim()) {
+    currentTitle = activeNote.title;
+  } else if (noteId) {
+    currentTitle = "Untitled";
+  }
+  const renderNotesContent = () => {
+    if (isLoading && notes.length === 0) {
+      return (
+        <li className="list-none space-y-2 p-2">
+          <div className="h-9 bg-slate-200/60 rounded-lg animate-pulse" />
+          <div className="h-9 bg-slate-200/60 rounded-lg animate-pulse" />
+          <div className="h-9 bg-slate-200/60 rounded-lg animate-pulse" />
+        </li>
+      );
+    }
+
+    if (filteredNotes.length === 0) {
+      return (
+        <li className="list-none px-4 py-8 text-center text-xs text-slate-400 font-medium">
+          {searchQuery
+            ? "No notes match your search."
+            : 'No notes yet. Click "+ New Note" to start!'}
+        </li>
+      );
+    }
+
+    return filteredNotes.map((note) => {
+      const isActive = noteId === note._id;
+
+      let noteTitle = "Untitled";
+      if (note.title?.trim()) {
+        noteTitle = note.title;
+      }
+
+      return (
+        <li
+          key={note._id}
+          className={`group relative flex items-center justify-between rounded-lg text-sm transition-colors cursor-pointer ${
+            isActive
+              ? "bg-indigo-50 text-slate-900 font-semibold px-3 py-2"
+              : "text-slate-600 hover:bg-slate-200/50 rounded-lg px-3 py-2"
+          }`}
+        >
+          <NavLink
+            to={`/dashboard/${note._id}`}
+            className="flex items-center space-x-2.5 min-w-0 flex-1 py-0.5 focus:outline-none"
+          >
+            <svg
+              className={`w-4 h-4 shrink-0 ${
+                isActive
+                  ? "text-indigo-600"
+                  : "text-slate-400 group-hover:text-slate-600"
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            <span className="truncate">{noteTitle}</span>
+          </NavLink>
+
+          <button
+            type="button"
+            onClick={(e) => handleDeleteNote(e, note._id)}
+            aria-label={`Delete note: ${noteTitle}`}
+            title={`Delete note: ${noteTitle}`}
+            className="ml-2 p-1 rounded-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-100 text-slate-400 hover:text-red-600 transition-all cursor-pointer"
+          >
+            <svg
+              className="w-3.5 h-3.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+          </button>
+        </li>
+      );
+    });
+  };
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white text-slate-900 font-sans selection:bg-indigo-500 selection:text-white">
       {isSidebarOpen && (
         <div
+          role="button"
+          tabIndex={0}
           className="fixed inset-0 z-20 bg-slate-900/30 backdrop-blur-xs md:hidden"
           onClick={() => setIsSidebarOpen(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setIsSidebarOpen(false);
+            }
+          }}
+          aria-label="Close sidebar overlay"
         />
       )}
 
@@ -117,6 +214,7 @@ const DashboardLayout = () => {
                 </NavLink>
 
                 <button
+                  type="button"
                   onClick={() => setIsSidebarOpen(false)}
                   title="Collapse sidebar"
                   className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
@@ -138,6 +236,7 @@ const DashboardLayout = () => {
               </div>
 
               <button
+                type="button"
                 onClick={handleCreateNote}
                 disabled={isCreating}
                 className="w-full flex items-center justify-center space-x-2 py-2.5 px-4 bg-slate-900 text-white rounded-full font-semibold text-sm shadow-md shadow-slate-900/10 hover:bg-slate-800 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
@@ -219,83 +318,7 @@ const DashboardLayout = () => {
             </div>
 
             <ul className="flex-1 overflow-y-auto px-4 py-2 space-y-1 list-none m-0 scrollbar-thin">
-              {isLoading && notes.length === 0 ? (
-                <li className="list-none space-y-2 p-2">
-                  <div className="h-9 bg-slate-200/60 rounded-lg animate-pulse" />
-                  <div className="h-9 bg-slate-200/60 rounded-lg animate-pulse" />
-                  <div className="h-9 bg-slate-200/60 rounded-lg animate-pulse" />
-                </li>
-              ) : filteredNotes.length === 0 ? (
-                <li className="list-none px-4 py-8 text-center text-xs text-slate-400 font-medium">
-                  {searchQuery
-                    ? "No notes match your search."
-                    : 'No notes yet. Click "+ New Note" to start!'}
-                </li>
-              ) : (
-                filteredNotes.map((note) => {
-                  const isActive = noteId === note._id;
-                  const noteTitle =
-                    note.title && note.title.trim() !== ""
-                      ? note.title
-                      : "Untitled";
-                  return (
-                    <li
-                      key={note._id}
-                      className={`group relative flex items-center justify-between rounded-lg text-sm transition-colors cursor-pointer ${
-                        isActive
-                          ? "bg-indigo-50 text-slate-900 font-semibold px-3 py-2"
-                          : "text-slate-600 hover:bg-slate-200/50 rounded-lg px-3 py-2"
-                      }`}
-                    >
-                      <NavLink
-                        to={`/dashboard/${note._id}`}
-                        className="flex items-center space-x-2.5 min-w-0 flex-1 py-0.5 focus:outline-none"
-                      >
-                        <svg
-                          className={`w-4 h-4 shrink-0 ${
-                            isActive
-                              ? "text-indigo-600"
-                              : "text-slate-400 group-hover:text-slate-600"
-                          }`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
-                        <span className="truncate">{noteTitle}</span>
-                      </NavLink>
-
-                      <button
-                        type="button"
-                        onClick={(e) => handleDeleteNote(e, note._id)}
-                        aria-label={`Delete note: ${noteTitle}`}
-                        title={`Delete note: ${noteTitle}`}
-                        className="ml-2 p-1 rounded-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-100 text-slate-400 hover:text-red-600 transition-all cursor-pointer"
-                      >
-                        <svg
-                          className="w-3.5 h-3.5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
-                      </button>
-                    </li>
-                  );
-                })
-              )}
+              {renderNotesContent()}
             </ul>
 
             <div className="p-4 border-t border-slate-200/80 bg-slate-100/60">
@@ -323,6 +346,7 @@ const DashboardLayout = () => {
                 </div>
 
                 <button
+                  type="button"
                   onClick={handleLogout}
                   disabled={isLoggingOut}
                   title="Sign out"
@@ -353,6 +377,7 @@ const DashboardLayout = () => {
           <div className="flex items-center space-x-3">
             {!isSidebarOpen && (
               <button
+                type="button"
                 onClick={() => setIsSidebarOpen(true)}
                 title="Expand sidebar"
                 className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"

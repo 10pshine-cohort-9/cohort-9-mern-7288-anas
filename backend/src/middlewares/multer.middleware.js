@@ -1,23 +1,29 @@
 import multer from "multer";
-import path from "path";
-import fs from "fs";
+import path from "node:path";
+import fs from "node:fs";
+import crypto from "node:crypto";
 import { ApiError } from "../utils/ApiError.js";
 
 const tempDir = "./temp";
 
-if (!fs.existsSync(tempDir)) {
-  fs.mkdirSync(tempDir, { recursive: true });
-}
+// Safely create the directory on server startup without the redundant if-check
+fs.mkdirSync(tempDir, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
-    }
-    cb(null, tempDir);
+    // Use the asynchronous, non-blocking mkdir during active requests
+    // recursive: true automatically handles the scenario where the folder already exists
+    fs.mkdir(tempDir, { recursive: true }, (err) => {
+      if (err) {
+        return cb(new ApiError(500, "Failed to initialize upload directory"), null);
+      }
+      cb(null, tempDir);
+    });
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const secureRandomString = crypto.randomBytes(8).toString("hex");
+    const uniqueSuffix = `${Date.now()}-${secureRandomString}`;
+    
     const ext = path.extname(file.originalname).toLowerCase();
     cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
   },
