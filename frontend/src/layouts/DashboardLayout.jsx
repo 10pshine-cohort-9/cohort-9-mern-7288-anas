@@ -178,18 +178,10 @@ const DashboardLayout = () => {
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white text-slate-900 font-sans selection:bg-indigo-500 selection:text-white">
       {isSidebarOpen && (
-        <div
+        <button
           type="button"
-          tabIndex={0}
-          className="fixed inset-0 z-20 bg-slate-900/30 backdrop-blur-xs md:hidden"
+          className="fixed inset-0 z-20 w-full bg-slate-900/30 backdrop-blur-xs md:hidden border-none outline-none cursor-pointer"
           onClick={() => setIsSidebarOpen(false)}
-          role="button"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              setIsSidebarOpen(false);
-            }
-          }}
           aria-label="Close sidebar overlay"
         />
       )}
