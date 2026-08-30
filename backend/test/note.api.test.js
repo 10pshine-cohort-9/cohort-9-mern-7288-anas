@@ -48,6 +48,28 @@ describe("Note API Tests", () => {
     sinon.restore();
   });
 
+  it("should return 400 if note title is an empty string", async () => {
+    const response = await request(app)
+      .post("/api/v1/notes")
+      .set("Authorization", `Bearer ${testToken}`)
+      .send({ title: "   ", content: "Some content" }); // Empty spaces trigger the validation
+
+    expect(response.status).to.equal(400);
+  });
+
+  it("should return 500 if database fails during notes fetch", async () => {
+    if (Note.find.restore) Note.find.restore();
+
+    // Force Note.find to reject to hit the catch block perfectly
+    sinon.stub(Note, "find").rejects(new Error("Simulated Fetch Error"));
+
+    const response = await request(app)
+      .get("/api/v1/notes")
+      .set("Authorization", `Bearer ${testToken}`);
+
+    expect(response.status).to.equal(500);
+  });
+
   it("should successfully create a new note and return 201", async () => {
     try {
       const response = await request(app)
@@ -316,10 +338,19 @@ describe("Note API Tests", () => {
 
   it("should clean up associated images when deleting a note", async () => {
     const validNoteId = "64c8c8e1f1a2b3c4d5e6f7a8";
-    sinon.stub(Note, "findById").resolves({ _id: validNoteId, owner: mockUserId });
-    
-    // Stub an attached image to trigger the cleanupAssociatedNoteImages logic
-    sinon.stub(NoteImage, "find").resolves([{ _id: "img1", publicId: "mock-public-id", note: validNoteId }]);
+    if (Note.findById.restore) Note.findById.restore();
+    if (NoteImage.find.restore) NoteImage.find.restore();
+    if (NoteImage.deleteMany.restore) NoteImage.deleteMany.restore();
+    if (Note.findByIdAndDelete.restore) Note.findByIdAndDelete.restore();
+
+    sinon
+      .stub(Note, "findById")
+      .resolves({ _id: validNoteId, owner: mockUserId });
+
+    // publicId set to null bypasses the Cloudinary API call, preventing the timeout
+    sinon
+      .stub(NoteImage, "find")
+      .resolves([{ _id: "img1", publicId: null, note: validNoteId }]);
     sinon.stub(NoteImage, "deleteMany").resolves({ deletedCount: 1 });
     sinon.stub(Note, "findByIdAndDelete").resolves(true);
 
@@ -346,6 +377,26 @@ describe("Note API Tests", () => {
     const validNoteId = "64c8c8e1f1a2b3c4d5e6f7a8";
     sinon.stub(Note, "findById").resolves({ _id: validNoteId, owner: mockUserId });
     sinon.stub(NoteImage, "find").throws(new Error("Simulated Cleanup Error"));
+
+    const response = await request(app)
+      .delete(`/api/v1/notes/${validNoteId}`)
+      .set("Authorization", `Bearer ${testToken}`);
+
+    expect(response.status).to.equal(500);
+  });
+
+  it("should return 500 if database fails specifically during image cleanup", async () => {
+    const validNoteId = "64c8c8e1f1a2b3c4d5e6f7a8";
+    if (Note.findById.restore) Note.findById.restore();
+    if (NoteImage.find.restore) NoteImage.find.restore();
+
+    // Pass the initial authorization check
+    sinon
+      .stub(Note, "findById")
+      .resolves({ _id: validNoteId, owner: mockUserId });
+
+    // Force the database to crash inside cleanupAssociatedNoteImages
+    sinon.stub(NoteImage, "find").rejects(new Error("Simulated Cleanup Error"));
 
     const response = await request(app)
       .delete(`/api/v1/notes/${validNoteId}`)
