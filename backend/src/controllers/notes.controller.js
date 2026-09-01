@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs from "node:fs";
 import { isValidObjectId } from "mongoose";
 import { Note } from "../models/note.model.js";
 import { NoteImage } from "../models/noteImage.model.js";
@@ -10,7 +10,6 @@ import {
   uploadOnCloudinary,
   deleteFromCloudinary,
 } from "../utils/cloudinary.js";
-
 
 const verifyNoteAccess = (note, userId, action = "view") => {
   if (!note) {
@@ -49,7 +48,10 @@ const cleanupAssociatedNoteImages = async (noteId) => {
         }
 
         const result = await deleteFromCloudinary(image.publicId);
-        if (result && (result.result === "ok" || result.result === "not found")) {
+        if (
+          result &&
+          (result.result === "ok" || result.result === "not found")
+        ) {
           successfulImageIds.push(image._id);
         } else {
           logger.error(
@@ -90,13 +92,9 @@ const cleanupAssociatedNoteImages = async (noteId) => {
       },
       "Failed to clean up all associated note images from Cloudinary",
     );
-    throw new ApiError(
-      500,
-      "Failed to clean up all associated note images",
-    );
+    throw new ApiError(500, "Failed to clean up all associated note images");
   }
 };
-
 
 const createNote = asyncHandler(async (req, res) => {
   const { title, content } = req.body;
@@ -130,7 +128,6 @@ const createNote = asyncHandler(async (req, res) => {
   }
 });
 
-
 const getUserNotes = asyncHandler(async (req, res) => {
   const {
     search,
@@ -148,7 +145,7 @@ const getUserNotes = asyncHandler(async (req, res) => {
     const sanitizedSearch = search
       .trim()
       .slice(0, 100)
-      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      .replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 
     if (sanitizedSearch) {
       query.$or = [
@@ -158,8 +155,11 @@ const getUserNotes = asyncHandler(async (req, res) => {
     }
   }
 
-  const pageNumber = Math.max(1, parseInt(page, 10) || 1);
-  const limitNumber = Math.max(1, Math.min(100, parseInt(limit, 10) || 10));
+  const pageNumber = Math.max(1, Number.parseInt(page, 10) || 1);
+  const limitNumber = Math.max(
+    1,
+    Math.min(100, Number.parseInt(limit, 10) || 10),
+  );
   const skip = (pageNumber - 1) * limitNumber;
   const sortDirection = sortType === "asc" ? 1 : -1;
 
@@ -197,7 +197,6 @@ const getUserNotes = asyncHandler(async (req, res) => {
   }
 });
 
-
 const getNoteById = asyncHandler(async (req, res) => {
   const { noteId } = req.params;
 
@@ -222,15 +221,7 @@ const getNoteById = asyncHandler(async (req, res) => {
   }
 });
 
-
-const updateNote = asyncHandler(async (req, res) => {
-  const { noteId } = req.params;
-  const { title, content, revision, version } = req.body;
-
-  if (!isValidObjectId(noteId)) {
-    throw new ApiError(400, "Invalid note ID");
-  }
-
+const validateUpdatePayload = (title, content) => {
   if (title === undefined && content === undefined) {
     throw new ApiError(
       400,
@@ -243,32 +234,46 @@ const updateNote = asyncHandler(async (req, res) => {
       throw new ApiError(400, "Title must be a non-empty string");
     }
   }
+};
+
+const calculateNextVersion = (incomingRevision, currentVersion) => {
+  if (incomingRevision !== undefined && incomingRevision !== null) {
+    const incomingRevNum = Number(incomingRevision);
+    if (
+      Number.isNaN(incomingRevNum) ||
+      !Number.isInteger(incomingRevNum) ||
+      incomingRevNum !== currentVersion + 1
+    ) {
+      throw new ApiError(
+        409,
+        "Stale write rejected: revision must advance by one",
+      );
+    }
+    return incomingRevNum;
+  }
+  return currentVersion + 1;
+};
+
+
+const updateNote = asyncHandler(async (req, res) => {
+  const { noteId } = req.params;
+  const { title, content, revision, version } = req.body;
+
+  if (!isValidObjectId(noteId)) {
+    throw new ApiError(400, "Invalid note ID");
+  }
+
+  validateUpdatePayload(title, content);
 
   try {
     const existingNote = await Note.findById(noteId);
     verifyNoteAccess(existingNote, req.user?._id, "edit");
 
-    const incomingRevision = revision ?? version;
     const currentVersion = existingNote.version ?? 0;
-
-    if (incomingRevision !== undefined && incomingRevision !== null) {
-      const incomingRevNum = Number(incomingRevision);
-      if (
-        isNaN(incomingRevNum) ||
-        !Number.isInteger(incomingRevNum) ||
-        incomingRevNum !== currentVersion + 1
-      ) {
-        throw new ApiError(
-          409,
-          "Stale write rejected: revision must advance by one",
-        );
-      }
-    }
-
-    const targetVersion =
-      incomingRevision !== undefined && incomingRevision !== null
-        ? Number(incomingRevision)
-        : currentVersion + 1;
+    const targetVersion = calculateNextVersion(
+      revision ?? version,
+      currentVersion,
+    );
 
     const updateFields = {
       version: targetVersion,
@@ -314,7 +319,6 @@ const updateNote = asyncHandler(async (req, res) => {
   }
 });
 
-
 const deleteNote = asyncHandler(async (req, res) => {
   const { noteId } = req.params;
 
@@ -342,8 +346,6 @@ const deleteNote = asyncHandler(async (req, res) => {
   }
 });
 
-
-
 const uploadNoteImage = asyncHandler(async (req, res) => {
   const localFilePath = req.file?.path;
 
@@ -356,11 +358,13 @@ const uploadNoteImage = asyncHandler(async (req, res) => {
   try {
     const uploadedImage = await uploadOnCloudinary(localFilePath);
 
-    if (fs.existsSync(localFilePath)) {
+    try {
       fs.unlinkSync(localFilePath);
+    } catch (err) {
+      logger.warn({ err }, "Temporary file already removed or unavailable");
     }
 
-    if (!uploadedImage || !uploadedImage.url) {
+    if (!uploadedImage?.url) {
       throw new ApiError(500, "Failed to upload image to Cloudinary");
     }
 
@@ -386,15 +390,17 @@ const uploadNoteImage = asyncHandler(async (req, res) => {
       ),
     );
   } catch (error) {
-    if (fs.existsSync(localFilePath)) {
+    try {
       fs.unlinkSync(localFilePath);
+    } catch (err) {
+      logger.error(err, "Faild to delete image");
     }
+
     throw error instanceof ApiError
       ? error
       : new ApiError(500, error?.message || "Error while uploading image");
   }
 });
-
 
 const deleteNoteImage = asyncHandler(async (req, res) => {
   const { publicId } = req.body;

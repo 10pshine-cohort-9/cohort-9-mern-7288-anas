@@ -3,10 +3,13 @@ import { axiosInstance } from "../api/axios";
 
 export const fetchNotes = createAsyncThunk(
   "notes/fetchNotes",
-  async (params = {}, thunkAPI) => {
+  async (params, thunkAPI) => {
+    const queryParams = params || {};
+    
     try {
-      const response = await axiosInstance.get("/notes", { params });
+      const response = await axiosInstance.get("/notes", { params: queryParams });
       const data = response.data?.data;
+      
       if (Array.isArray(data)) {
         return data;
       }
@@ -21,7 +24,7 @@ export const fetchNotes = createAsyncThunk(
 
 export const createNote = createAsyncThunk(
   "notes/createNote",
-  async (payload = { title: "Untitled", content: "" }, thunkAPI) => {
+  async (payload, thunkAPI) => {
     try {
       const body = {
         title: payload?.title?.trim() || "Untitled",

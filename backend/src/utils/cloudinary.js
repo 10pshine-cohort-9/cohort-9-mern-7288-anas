@@ -1,5 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
-import fs from "fs";
+import fs from "node:fs";
 import logger from "./logger.js";
 import dotenv from "dotenv";
 

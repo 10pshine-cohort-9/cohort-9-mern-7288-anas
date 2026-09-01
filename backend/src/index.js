@@ -10,15 +10,14 @@ import logger from "./utils/logger.js";
 
 const port = process.env.PORT || 3000;
 
-connectDB()
-  .then(() => {
-    const server = app.listen(port, () => {
-      logger.info(`Server is running on port ${port}`);
-    });
-    server.on("error", (err) => {
-      logger.error(err, "Server encountered an error");
-    });
-  })
-  .catch((err) => {
-    logger.error(err, "MongoDb connection error");
+try {
+  await connectDB();
+  const server = app.listen(port, () => {
+    logger.info(`Server is running on port ${port}`);
   });
+  server.on("error", (err) => {
+    logger.error(err, "Server encountered an error");
+  });
+} catch (err) {
+  logger.error(err, "MongoDb connection error");
+}
